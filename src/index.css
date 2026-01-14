@@ -1,0 +1,174 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-inter: 'Inter', sans-serif;
+  --font-poppins: 'Poppins', sans-serif;
+}
+
+/* 1. Global Smooth Scroll & Touch Feel */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 2rem;
+  touch-action: manipulation;
+  /* Removes 300ms delay on mobile */
+  -webkit-tap-highlight-color: transparent;
+  /* Removes grey tap highlight */
+}
+
+body {
+  @apply bg-[#050505] text-white font-sans;
+  background-color: #050505;
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Apple-style Inertia Scroll hidden (handled by Lenis) but fallback here */
+}
+
+/* Custom Scrollbar - Premium Apple Style (Thin & Auto-hide feel) */
+::-webkit-scrollbar {
+  width: 6px;
+  /* Reduced from 6px/8px to be subtle */
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-white/10 rounded-full;
+  transition: background 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-white/20;
+  /* Softer hover than primary color */
+}
+
+/* Selection Color - Premium Green Tint */
+::selection {
+  background-color: rgba(112, 224, 0, 0.2);
+  color: white;
+}
+
+/* Glassmorphism Utilities - Strict Apple Liquid Glass */
+/* Glassmorphism Utilities - Optimized for Performance */
+.glass {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px);
+  /* Reduced from 24px */
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  /* Simplified shadow */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px);
+  /* Reduced from 24px */
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  /* Optimized Transition */
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  will-change: transform;
+  /* Hint for compositor */
+}
+
+.glass-card:hover {
+  transform: translateY(-2px);
+  /* Reduced movement */
+  border-color: rgba(112, 224, 0, 0.3);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+  /* Lighter shadow */
+}
+
+.pause-on-hover:hover {
+  animation-play-state: paused;
+}
+
+.text-glow {
+  text-shadow: 0 0 10px rgba(112, 224, 0, 0.5);
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.5s ease-out forwards;
+}
+
+.animate-pulse-slow {
+  animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* --- VISUAL POLISH ADDITIONS --- */
+
+/* 1. Global Smooth Scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+/* 2. Premium Neon Green Liquid Glass Background */
+@keyframes liquid-drift {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* 2. Premium Aaghaz-Style Fixed Component - Now handled by GlobalAaghazBackground.jsx */
+.premium-glass-green-bg {
+  /* Kept class for backward compatibility but removed styles to let GlobalBackground show through */
+  background: transparent !important;
+}
