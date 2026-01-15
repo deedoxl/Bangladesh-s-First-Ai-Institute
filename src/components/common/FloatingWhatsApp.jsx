@@ -54,7 +54,7 @@ const FloatingWhatsApp = () => {
             <Modal
                 isOpen={isOpen}
                 onClose={() => setIsOpen(false)}
-                title={step < 4 ? <span className="text-deedox-accent-primary">Emrul Community Chat</span> : "Ready to Send?"}
+                title={step < 4 ? <span className="text-deedox-accent-primary">Select your role to get started</span> : "Ready to Send?"}
             >
                 <StepIndicator />
                 {/* Step 1: Name */}
