@@ -38,7 +38,7 @@ const FloatingWhatsApp = () => {
         <>
             <div className="fixed bottom-8 right-8 z-40 group">
                 <div className="absolute bottom-full right-0 mb-3 w-48 bg-deedox-accent-primary text-black text-xs font-bold py-2 px-3 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-center shadow-[0_0_15px_#70E000]">
-                    Emrul Our Community
+                    Select your role to get started
                     <div className="absolute top-full right-6 -mt-1 border-4 border-transparent border-t-deedox-accent-primary" />
                 </div>
                 <motion.button
