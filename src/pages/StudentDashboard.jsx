@@ -639,15 +639,16 @@ const StudentDashboard = () => {
             return; // Added return to exit if no model is selected and the premium logic is not triggered
         }
 
+
         const userMsg = { role: 'user', content: input };
         setMessages(prev => [...prev, userMsg]);
         setInput('');
         setIsLoading(true);
 
         try {
-            // V25: Secure Backend Proxy via aiHandler (No Client Key)
+            // Use Unified AI Service (Direct or Proxy)
+            // This handles CLIENT key (dev) or PROXY (prod) automatically.
             const fetchPromises = currentModels.map(async (modelId) => {
-                // Prepare context
                 const history = messages.map(m => ({ role: m.role, content: m.content }));
                 const fullMessages = [
                     { "role": "system", "content": aiModes[aiMode].systemPrompt },
@@ -655,23 +656,28 @@ const StudentDashboard = () => {
                     userMsg
                 ];
 
-                // Call Secure Handler
-                const result = await chatWithAI({ modelId, messages: fullMessages });
+                const { sendAIMessage } = await import('../services/aiService');
+                const result = await sendAIMessage({ modelId, messages: fullMessages });
 
-                if (result.error) {
-                    return { role: 'assistant', content: 'Error: ' + result.content, isError: true, modelName: getModelDisplayName(modelId) };
-                }
-                return { role: 'assistant', content: result.content, modelName: getModelDisplayName(modelId) };
+                // Standardize Result
+                if (result.error) throw new Error(result.error);
+                return {
+                    role: 'assistant',
+                    content: result.content || result.choices?.[0]?.message?.content || "No response",
+                    modelName: getModelDisplayName(modelId)
+                };
             });
 
             const results = await Promise.all(fetchPromises);
             setMessages(prev => [...prev, ...results]);
 
         } catch (error) {
-            setMessages(prev => [...prev, { role: 'assistant', content: 'System Error: ' + error.message, isError: true }]);
+            console.error("AI Error:", error);
+            setMessages(prev => [...prev, { role: 'assistant', content: 'Connection Error: ' + (error.message || "Unknown"), isError: true }]);
         } finally {
             setIsLoading(false);
         }
+
     };
 
     // ... [existing community handlers] ... 

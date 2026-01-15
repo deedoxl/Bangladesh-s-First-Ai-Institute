@@ -107,42 +107,22 @@ const AITools = () => {
             return;
         }
 
-        // [NEW] Handle missing key if apiKeyMasked is false (meaning key is NOT masked, implying it's missing or invalid)
-        // This check is now before the general API key check to allow for specific handling if needed.
-        if (apiKeyMasked === false) {
-            // Handle missing key if needed
-        }
-
-        if (!settings.openRouterKey) {
-            setLoading(true);
-            setTimeout(() => {
-                setResponses(prev => [...prev, { // Changed to append
-                    model: selectedModel,
-                    content: "API Key missing. Please ask Admin to configure OpenRouter API Key. (Demo Mode)",
-                    error: true
-                }]);
-                setLoading(false);
-            }, 1000);
-            return;
-        }
-
         setLoading(true);
         const startTime = Date.now();
         const userMsgId = Date.now();
-        // [CHANGE] Removed undefined logic from previous snippet attempt? No wait, this is clean append.
+
         const newResponseEntry = {
             id: userMsgId,
             role: 'user',
             content: prompt,
             model: 'User',
             startTime,
-            thoughtTime: null // Will be filled later
+            thoughtTime: null
         };
 
         setResponses(prev => [...prev, newResponseEntry]);
         setPrompt('');
 
-        // [FIX] Scroll to bottom immediately on send
         setTimeout(() => {
             if (messagesEndRef.current) {
                 messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -150,28 +130,48 @@ const AITools = () => {
         }, 100);
 
         try {
-            const result = await chatWithAI({
-                modelId: selectedModel,
-                messages: [{ role: "user", content: prompt }],
-            });
+            // Import new Service
+            const { sendAIMessage } = await import('../services/aiService');
+
+            // Build Context (System Prompt + History)
+            // Note: AITools simple chat usually has less "System" context than Student Dashboard,
+            // but we can add a generic one if needed or leave empty.
+            // Let's add simple one.
+            const history = responses.map(m => ({ role: m.role === 'ai' ? 'assistant' : m.role, content: m.content }));
+            const fullMessages = [
+                { role: "system", content: "You are an AI assistant in Deedox AI Tools." },
+                ...history,
+                { role: "user", content: newResponseEntry.content }
+            ];
+
+            const result = await sendAIMessage({ modelId: selectedModel, messages: fullMessages });
+
+            if (result.error) throw new Error(result.error);
+            const content = result.content || result.choices?.[0]?.message?.content || "No response";
 
             const endTime = Date.now();
             const duration = ((endTime - startTime) / 1000).toFixed(1);
 
-            // Update user message with generic success if needed, but primarily we want to just append AI message
-            // Wait, we are adding "Thought for" to the USER message previously.
-            // User requested thinking indicator on LEFT. This implies it's "AI's thinking".
-            // So "Thought for Xs" should probably appear ABOVE or WITH the AI message.
-            // But let's stick to the visible "Thinking" block first.
-
             // Add AI Message
-            setResponses(prev => [...prev, { ...result, role: 'ai', id: Date.now() + 1, thoughtTime: duration }]);
+            setResponses(prev => [...prev, {
+                role: 'ai',
+                content: content,
+                model: selectedModel,
+                id: Date.now() + 1,
+                thoughtTime: duration
+            }]);
 
         } catch (e) {
             console.error(e);
+            setResponses(prev => [...prev, {
+                model: selectedModel,
+                content: "Error: " + (e.message || "Failed to connect"),
+                error: true,
+                role: 'ai',
+                id: Date.now() + 2
+            }]);
         } finally {
             setLoading(false);
-            // [FIX] Scroll to bottom on complete
             setTimeout(() => {
                 if (messagesEndRef.current) {
                     messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });

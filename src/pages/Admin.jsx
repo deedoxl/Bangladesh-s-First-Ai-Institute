@@ -71,6 +71,13 @@ const Admin = () => {
         checkSession();
     }, [settings]);
 
+    // [FIX] Sync Masked Key to Local State
+    React.useEffect(() => {
+        if (apiKeyMasked) {
+            setLocalKey(apiKeyMasked);
+        }
+    }, [apiKeyMasked]);
+
     // Hashing Function (SHA-256)
     const hashPassword = async (password) => {
         const msgBuffer = new TextEncoder().encode(password);
@@ -183,12 +190,11 @@ const Admin = () => {
     }, [activeTab]);
 
     const handleSaveSettings = () => {
-        // SAVE API KEY (Backend Persistence)
-        if (localKey && localKey !== apiKeyMasked && !localKey.includes('........')) {
-            aiModels.saveGlobalKey(localKey);
-        } else if (!localKey) {
-            alert("Warning: API Key field is empty. It was not saved.");
-        }
+
+        // SAVE API KEY (Backend Persistence) - DEPRECATED (Moved to Env Vars)
+        // if (localKey && localKey !== apiKeyMasked && !localKey.includes('........')) {
+        //     aiModels.saveGlobalKey(localKey);
+        // }
 
         // 1. Update General JSON Settings
         updateSettings({
@@ -1807,34 +1813,29 @@ const Admin = () => {
                                     <Button variant="accent" onClick={handleForceSave}><Save size={16} /> Save Changes</Button>
                                 </div>
 
-                                {/* Global API Key Section */}
+
+                                {/* Global API Key Section - ENVIRONMENT VARIABLE NOTICE */}
                                 <div className="bg-black/20 p-6 rounded-xl border border-white/5 space-y-4 mb-8">
                                     <div className="flex justify-between items-start">
                                         <div className="space-y-1">
                                             <h3 className="text-lg text-white font-bold flex items-center gap-2"><Key size={18} /> Global OpenRouter API Key</h3>
-                                            <p className="text-xs text-deedox-text-muted">This single key will be used for ALL enabled models below. No per-model usage.</p>
+                                            <p className="text-xs text-deedox-text-muted">Security Upgrade: API Keys are now managed via Environment Variables.</p>
                                         </div>
-                                        <div className={`px-3 py-1 rounded text-xs font-bold ${aiModels.hasKey() ? 'bg-green-500/10 text-green-500 border border-green-500/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>
-                                            {aiModels.hasKey() ? 'System Active' : 'Key Missing'}
+                                        <div className="px-3 py-1 rounded text-xs font-bold bg-blue-500/10 text-blue-500 border border-blue-500/20">
+                                            SECURE MODE
                                         </div>
                                     </div>
-                                    <div className="flex gap-4">
-                                        <div className="flex-grow">
-                                            <InputGroup
-                                                label="API Key (sk-or-...)"
-                                                value={localKey}
-                                                onChange={setLocalKey}
-                                                type="password"
-                                                placeholder="sk-or-xxxxxxxxxxxxxxxx"
-                                            />
-                                        </div>
-                                        <div className="flex flex-col justify-end">
-                                            <Button variant="accent" onClick={() => aiModels.saveGlobalKey(localKey)} className="h-[50px] px-8">
-                                                Save Securely
-                                            </Button>
-                                        </div>
+                                    <div className="p-4 bg-blue-500/5 rounded-lg border border-blue-500/20 text-sm text-blue-200">
+                                        <p className="font-bold flex items-center gap-2 mb-2">
+                                            <Shield size={16} /> Configuration Managed by Server
+                                        </p>
+                                        <p className="opacity-80">
+                                            The AI API Key is loaded securely from the server environment controls.
+                                            You do not need to enter it here. This prevents keys from being exposed in the database or unrelated code.
+                                        </p>
                                     </div>
                                 </div>
+
 
                                 <div className="space-y-8">
                                     {/* Models Table (MASTER SYSTEM V16) */}

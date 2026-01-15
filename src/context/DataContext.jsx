@@ -417,15 +417,9 @@ export const DataProvider = ({ children }) => {
                 if (startModels.length > 0) setAiModelSettings(startModels);
             }
 
-            // 14. [NEW] Global Key Status Check (Fetch Masked Key)
-            const { data: maskedKey } = await supabase.rpc('get_ai_system_settings_masked');
-            if (maskedKey) {
-                setApiKeyStatus({ 'openrouter': true });
-                setApiKeyMasked(maskedKey);
-            } else {
-                setApiKeyStatus({ 'openrouter': false });
-                setApiKeyMasked('');
-            }
+            // 14. [NEW] Global Key Status Check - BYPASS (Env Vars Used)
+            setApiKeyStatus({ 'openrouter': true });
+            setApiKeyMasked('ENV_VAR_MANAGED');
 
             // 15. News
             const { data: newsData } = await supabase.from('news').select('*').order('created_at', { ascending: false });
@@ -485,7 +479,7 @@ export const DataProvider = ({ children }) => {
     // --- INITIAL LOAD & REALTIME SUBSCRIPTION ---
     // Sync Masked Key to Settings (for UI compatibility)
     useEffect(() => {
-        setSettings(prev => ({ ...prev, openRouterKey: apiKeyMasked }));
+        // setSettings(prev => ({ ...prev, openRouterKey: apiKeyMasked })); // Deprecated
     }, [apiKeyMasked]);
 
     // পেজ লোড হবার সাথে সাথে ডাটাবেস থেকে সব আনবো এবং রিয়েলটাইম আপডেট চালু করবো
@@ -962,23 +956,14 @@ export const DataProvider = ({ children }) => {
             console.warn("Direct update deprecated in V16. Use toggleEnabled / setDefault.");
         },
 
-        // NEW: Save Global Key (V16 Secure)
+        // NEW: Save Global Key (V16 Secure) - NOW READ ONLY
         saveGlobalKey: async (key) => {
-            const { error } = await supabase.rpc('save_ai_system_settings', { p_key: key });
-            if (error) {
-                console.error("Key Save Error:", error);
-                alert("Failed to save API Key: " + error.message);
-            } else {
-                setApiKeyStatus(prev => ({ ...prev, 'openrouter': true }));
-                // Fetch the masked key again to update UI
-                const { data: mk } = await supabase.rpc('get_ai_system_settings_masked');
-                if (mk) setApiKeyMasked(mk);
-                alert(`Global OpenRouter API Key saved securely!`);
-            }
+            alert("Security Upgrade: API Keys are now managed by the server environment variables. Usage of this form is deprecated.");
         },
 
         hasKey: () => {
-            return apiKeyStatus ? apiKeyStatus['openrouter'] : false;
+            // Always return true as we assume Environment Variables are set for Production
+            return true;
         }
     };
 

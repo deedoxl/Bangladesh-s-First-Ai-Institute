@@ -48,12 +48,26 @@ Deno.serve(async (req: Request) => {
             throw new Error(`Model '${modelId}' is not authorized or is currently disabled by admin.`);
         }
 
-        // 3. Fetch Global OpenRouter API Key (Secure RPC)
-        const { data: apiKey, error: keyError } = await supabaseAdmin.rpc('get_decrypted_system_key');
+        // 3. Fetch Global OpenRouter API Key
+        // Priority 1: Environment Variable (Secure & Standard for Deployments)
+        let apiKey = Deno.env.get('OPENROUTER_API_KEY');
 
-        if (keyError || !apiKey) {
-            console.error("Critical: Failed to retrieve API Key via RPC.", keyError);
-            throw new Error("System Configuration Error: AI API Key not configured or accessible.");
+        // Priority 2: Database RPC (Legacy / Dynamic Admin Fallback)
+        if (!apiKey) {
+            console.log("Env var OPENROUTER_API_KEY not found, trying Database RPC...");
+            const { data: dbKey, error: keyError } = await supabaseAdmin.rpc('get_decrypted_system_key');
+
+            if (!keyError && dbKey) {
+                apiKey = dbKey;
+            } else {
+                console.warn("RPC Key Fetch Failed or Empty:", keyError);
+            }
+        }
+
+        // Final Check
+        if (!apiKey) {
+            console.error("Critical: No AI API Key found in Environment or Database.");
+            throw new Error("System Configuration Error: AI API Key not configured.");
         }
 
         // 4. Call AI Provider (OpenRouter)
