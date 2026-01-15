@@ -52,17 +52,11 @@ const FloatingWhatsApp = () => {
             </div>
 
             <Modal
-                IsOpen={isOpen}
-onClose={() => setIsOpen(false)}
-title={
-    step < 4 ? (
-        <span className="text-deedox-accent-primary">Select your role to get started</span>
-    ) : (
-        "Ready to Send?"
-    )
-}
->
-<StepIndicator />
+                isOpen={isOpen}
+                onClose={() => setIsOpen(false)}
+                title={step < 4 ? <span className="text-deedox-accent-primary">Select your role to get started</span> : "Ready to Send?"}
+            >
+                <StepIndicator />
                 {/* Step 1: Name */}
                 {step === 1 && (
                     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
