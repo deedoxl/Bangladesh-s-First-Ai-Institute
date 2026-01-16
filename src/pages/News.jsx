@@ -60,7 +60,7 @@ const News = () => {
     };
 
     return (
-        <div className="min-h-screen bg-[#050505] text-white pt-24 pb-20 px-4 relative overflow-hidden">
+        <div className="min-h-screen bg-[#050505] text-white pt-20 md:pt-24 pb-20 px-4 relative overflow-hidden">
             {/* Background Effects */}
             <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
                 <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-deedox-accent-primary/5 rounded-full blur-[120px] animate-pulse-slow" />
@@ -75,7 +75,7 @@ const News = () => {
                         <Sparkles size={12} />
                         <span>Intelligence Hub</span>
                     </div>
-                    <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-white mb-4">
+                    <h1 className="text-4xl md:text-7xl font-bold tracking-tight text-white mb-4">
                         AI <span className="text-transparent bg-clip-text bg-gradient-to-br from-[#70E000] to-[#408000] drop-shadow-[0_0_15px_rgba(112,224,0,0.5)]">News</span> Portal
                     </h1>
                     <p className="text-white/60 max-w-2xl mx-auto text-lg leading-relaxed">
@@ -143,7 +143,7 @@ const News = () => {
                     {/* Animated Border Gradient */}
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-deedox-accent-primary/30 to-transparent animate-shimmer" style={{ backgroundSize: '200% 100%' }} />
 
-                    <div className="relative bg-[#0A0A0A] rounded-[38px] p-8 md:p-16 text-center border border-white/10 backdrop-blur-2xl overflow-hidden">
+                    <div className="relative bg-[#0A0A0A] rounded-[38px] p-6 md:p-16 text-center border border-white/10 backdrop-blur-2xl overflow-hidden">
                         {/* Inner Glows */}
                         <div className="absolute top-0 right-0 w-64 h-64 bg-deedox-accent-primary/10 rounded-full blur-[80px]" />
                         <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/10 rounded-full blur-[80px]" />
