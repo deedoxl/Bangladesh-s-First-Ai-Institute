@@ -197,7 +197,7 @@ const AITools = () => {
         <div className="min-h-screen pt-24 pb-10 container mx-auto px-4 flex flex-col gap-6 font-sans">
             {/* Background Glows */}
             {/* Premium Neon Glass Background Animation */}
-            <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+            <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden transform-gpu" style={{ backfaceVisibility: 'hidden' }}>
                 <div className="absolute top-[-10%] left-[10%] w-[600px] h-[600px] bg-[#a3e635]/10 rounded-full blur-[100px] animate-pulse-slow mix-blend-screen" />
                 <div className="absolute bottom-[-10%] right-[10%] w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] mix-blend-screen" />
                 <div className="absolute top-[40%] left-[50%] -translate-x-1/2 w-[800px] h-[800px] bg-[#a3e635]/5 rounded-full blur-[150px] animate-blob" />
@@ -220,7 +220,10 @@ const AITools = () => {
             </div>
 
             {/* Main Interface (Liquid Glass Panel) */}
-            <div className="flex flex-col lg:flex-row gap-6 min-h-[80vh] lg:h-[calc(100vh-180px)] relative z-10 glass-panel rounded-[2.5rem] p-4 lg:p-6 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.7)] border border-white/10 backdrop-blur-[50px] bg-black/40">
+            <div
+                className="flex flex-col lg:flex-row gap-6 min-h-[80vh] lg:h-[calc(100vh-180px)] relative z-10 glass-panel rounded-[2.5rem] p-4 lg:p-6 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.7)] border border-white/10 backdrop-blur-xl lg:backdrop-blur-[50px] bg-black/40 transform-gpu"
+                style={{ backfaceVisibility: 'hidden' }}
+            >
 
                 {/* 1. Capabilities Sidebar (Glass Drawer) */}
                 <div className="w-full lg:w-1/4 flex flex-col gap-6 lg:border-r border-white/5 pr-0 lg:pr-6">

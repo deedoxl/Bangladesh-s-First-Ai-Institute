@@ -1,0 +1,16 @@
+=== DEBUGGIN AI BACKEND ===
+Using Model: qwen/qwen-2.5-coder-32b-instruct
+Fetching: https://hbqacsaxsyphanfzgnsk.supabase.co/functions/v1/chat-proxy
+Response Status: 400 Bad Request
+Response Body (Raw):
+{"error":"AI Provider Error (401): {\"error\":{\"message\":\"User not found.\",\"code\":401}}","details":"Error: AI Provider Error (401): {\"error\":{\"message\":\"User not found.\",\"code\":401}}\n    at Object.handler (file:///var/tmp/sb-compile-edge-runtime/chat-proxy/index.ts:77:13)\n    at eventLoopTick (ext:core/01_core.js:175:7)\n    at async mapped (ext:runtime/http.js:242:18)","diagnostics":{"hasUrl":true,"hasAnonKey":true,"hasOpenRouterEnv":true}}
+Parsed JSON:
+{
+  "error": "AI Provider Error (401): {\"error\":{\"message\":\"User not found.\",\"code\":401}}",
+  "details": "Error: AI Provider Error (401): {\"error\":{\"message\":\"User not found.\",\"code\":401}}\n    at Object.handler (file:///var/tmp/sb-compile-edge-runtime/chat-proxy/index.ts:77:13)\n    at eventLoopTick (ext:core/01_core.js:175:7)\n    at async mapped (ext:runtime/http.js:242:18)",
+  "diagnostics": {
+    "hasUrl": true,
+    "hasAnonKey": true,
+    "hasOpenRouterEnv": true
+  }
+}

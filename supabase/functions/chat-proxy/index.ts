@@ -6,8 +6,9 @@ const corsHeaders = {
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+
 Deno.serve(async (req: Request) => {
-    // Handle CORS preflight request
+    // 0. Handle CORS preflight request
     if (req.method === 'OPTIONS') {
         return new Response('ok', { headers: corsHeaders });
     }
@@ -15,10 +16,21 @@ Deno.serve(async (req: Request) => {
     try {
         const { modelId, messages } = await req.json();
 
-        // 1. Init Supabase Client (Using Anon Key is sufficient as we granted RPC access)
+        // DIAGNOSTICS: Check Env Vars (Masked)
+        const sbUrl = Deno.env.get('SUPABASE_URL');
+        const sbKey = Deno.env.get('SUPABASE_ANON_KEY');
+        const envKey = Deno.env.get('OPENROUTER_API_KEY');
+
+        console.log("Startup Diagnostics:", {
+            hasUrl: !!sbUrl,
+            hasAnonKey: !!sbKey,
+            hasEnvKey: !!envKey
+        });
+
+        // 1. Init Supabase Client
         const supabaseAdmin = createClient(
-            Deno.env.get('SUPABASE_URL') ?? '',
-            Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+            sbUrl ?? '',
+            sbKey ?? ''
         );
 
         // 2. Validate User (Optional for Local/Guest Mode)
@@ -27,16 +39,14 @@ Deno.serve(async (req: Request) => {
         let user = null;
 
         if (token) {
-            const { data } = await supabaseAdmin.auth.getUser(token);
+            const { data, error: authError } = await supabaseAdmin.auth.getUser(token);
+            if (authError) console.warn("Auth Warning:", authError.message);
             user = data.user;
         }
 
-        // Strict Check Removed for Local Admin Support
-        // if (!user) throw new Error('Unauthorized'); 
-        console.log(`Request from user: ${user?.id || 'Anonymous/Guest'}`);
+        console.log(`Request from user: ${user?.id || 'Anonymous/Guest'}, Model: ${modelId}`);
 
-        // 2. Validate Model (Must be in our DB and Enabled)
-        // This prevents users from injecting arbitrary model IDs
+        // 3. Validate Model (Must be in our DB and Enabled)
         const { data: modelData, error: modelError } = await supabaseAdmin
             .from('ai_models')
             .select('enabled')
@@ -48,11 +58,10 @@ Deno.serve(async (req: Request) => {
             throw new Error(`Model '${modelId}' is not authorized or is currently disabled by admin.`);
         }
 
-        // 3. Fetch Global OpenRouter API Key
-        // Priority 1: Environment Variable (Secure & Standard for Deployments)
-        let apiKey = Deno.env.get('OPENROUTER_API_KEY');
+        // 4. Fetch Global OpenRouter API Key
+        let apiKey = envKey;
 
-        // Priority 2: Database RPC (Legacy / Dynamic Admin Fallback)
+        // Priority 2: Database RPC
         if (!apiKey) {
             console.log("Env var OPENROUTER_API_KEY not found, trying Database RPC...");
             const { data: dbKey, error: keyError } = await supabaseAdmin.rpc('get_decrypted_system_key');
@@ -66,18 +75,17 @@ Deno.serve(async (req: Request) => {
 
         // Final Check
         if (!apiKey) {
-            console.error("Critical: No AI API Key found in Environment or Database.");
-            throw new Error("System Configuration Error: AI API Key not configured.");
+            throw new Error("Critical: No AI API Key found in Environment or Database.");
         }
 
-        // 4. Call AI Provider (OpenRouter)
-        // Server-Side Call -> Key never exposed to client
+        // 5. Call AI Provider (OpenRouter)
+        console.log("Calling OpenRouter...");
         const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
             method: "POST",
             headers: {
                 "Authorization": `Bearer ${apiKey}`,
                 "Content-Type": "application/json",
-                "HTTP-Referer": "https://deedox.ai", // Production URL
+                "HTTP-Referer": "https://deedox.ai",
                 "X-Title": "DEEDOX AI"
             },
             body: JSON.stringify({
@@ -89,9 +97,7 @@ Deno.serve(async (req: Request) => {
         if (!response.ok) {
             const errText = await response.text();
             console.error(`OpenRouter Error (${response.status}):`, errText);
-            // Fallback strategy: If 401/403, key is bad. If 404, model bad.
-            // But for now, just relay the error safely.
-            throw new Error(`AI Provider Error: ${response.statusText}`);
+            throw new Error(`AI Provider Error (${response.status}): ${errText}`);
         }
 
         const data = await response.json();
@@ -102,10 +108,20 @@ Deno.serve(async (req: Request) => {
         });
 
     } catch (error: any) {
-        console.error("AI Proxy Main Error:", error);
-        return new Response(JSON.stringify({ error: error.message || 'Internal Server Error' }), {
+        console.error("AI Proxy MAIN CATCH:", error);
+
+        // Return Detailed JSON Error for Debugging
+        return new Response(JSON.stringify({
+            error: error.message || 'Unknown Internal Error',
+            details: error.stack || null,
+            diagnostics: {
+                hasUrl: !!Deno.env.get('SUPABASE_URL'),
+                hasAnonKey: !!Deno.env.get('SUPABASE_ANON_KEY'),
+                hasOpenRouterEnv: !!Deno.env.get('OPENROUTER_API_KEY')
+            }
+        }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 400,
+            status: 400, // Return 400 to show body to client
         });
     }
 });
