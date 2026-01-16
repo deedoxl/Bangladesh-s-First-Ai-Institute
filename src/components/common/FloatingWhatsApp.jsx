@@ -18,9 +18,13 @@ const FloatingWhatsApp = () => {
     const handleNext = () => setStep(s => s + 1);
 
     const sendMessage = () => {
-        const text = `*New Inquiry via Website* %0A%0A👤 *Name:* ${formData.name} %0A💼 *Role:* ${formData.role} %0A🎯 *Goal:* ${formData.goal}`;
-        const url = `https://wa.me/${socials.whatsapp}?text=${text}`;
+        const { name, role, goal } = formData;
+        const phone = socials?.whatsapp?.split('/')?.pop() || '8801700000000'; // Fallback if data missing
+        const text = `Hi, I'm ${name}. I am a ${role} looking for ${goal}.`;
+        const url = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
+
         window.open(url, '_blank');
+
         setIsOpen(false);
         setStep(1);
         setFormData({ name: '', role: '', goal: '' });

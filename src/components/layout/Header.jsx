@@ -61,6 +61,15 @@ const Header = () => {
                 }
             }
             // If we are NOT on home page, let Link handle navigation to '/'
+        } else if (path === '/') {
+            e.preventDefault();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            if (location.pathname !== '/') {
+                // Force navigation if strict routing is needed, but window.scrollTo is usually enough if Link to="/" is clicked.
+                // Actually for a Link, we should let it navigate if path changes. 
+                // But since we are intercepting onClick, let's allow navigation manually if needed.
+                // The Link component will handle the URL change. We just ensure scroll reset.
+            }
         } else if (path.startsWith('#')) {
             e.preventDefault();
             const element = document.getElementById(path.substring(1));
@@ -162,7 +171,7 @@ const Header = () => {
 
                 {/* --- Mobile Hamburger --- */}
                 <button
-                    className="md:hidden text-white p-2 relative z-50 hover:text-[#70E000] transition-colors"
+                    className="md:hidden text-white p-2 relative z-[101] hover:text-[#70E000] transition-colors"
                     onClick={() => setIsOpen(!isOpen)}
                 >
                     {isOpen ? <X size={32} /> : <Menu size={32} />}
@@ -177,7 +186,7 @@ const Header = () => {
                         animate={{ opacity: 1, clipPath: "circle(150% at 100% 0%)" }}
                         exit={{ opacity: 0, clipPath: "circle(0% at 100% 0%)" }}
                         transition={{ type: "spring", stiffness: 100, damping: 20 }}
-                        className="fixed inset-0 top-0 bg-black/60 z-40 flex flex-col items-center justify-center gap-8 backdrop-blur-3xl"
+                        className="fixed inset-0 top-0 bg-black/90 z-[100] flex flex-col items-center justify-center gap-8 backdrop-blur-3xl h-[100dvh] overflow-y-auto"
                     >
                         {navLinks.map((link, i) => {
                             const displayName = link.name === 'AI Tools' ? (settings.aiPageTitle || 'AI Tools') : link.name;

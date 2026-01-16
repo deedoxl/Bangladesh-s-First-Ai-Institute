@@ -61,10 +61,10 @@ const AITools = () => {
 
     // Map Capability Slug to DB Group Name
     const CAPABILITY_TO_GROUP = {
-        'text_chat': 'text',
+        'text_chat': 'chat',
         'voice_to_text': 'voice',
         'image_generation': 'image',
-        'coding_assistant': 'code'
+        'coding_assistant': 'coding'
     };
 
     const handleCapabilityChange = (cap) => {
@@ -144,7 +144,11 @@ const AITools = () => {
                 { role: "user", content: newResponseEntry.content }
             ];
 
-            const result = await sendAIMessage({ modelId: selectedModel, messages: fullMessages });
+            // [FIX] Resolve UUID to Slug (model_id) for Backend
+            const modelObj = aiModels?.items?.find(m => m.id === selectedModel);
+            const contentModelId = modelObj ? modelObj.model_id : selectedModel;
+
+            const result = await sendAIMessage({ modelId: contentModelId, messages: fullMessages });
 
             if (result.error) throw new Error(result.error);
             const content = result.content || result.choices?.[0]?.message?.content || "No response";

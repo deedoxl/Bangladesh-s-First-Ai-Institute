@@ -390,17 +390,24 @@ const StudentDashboard = () => {
     const dmEndRef = useRef(null);
 
     // Sync defaults when data loads (Student)
+    // Sync defaults when data loads (Student)
     useEffect(() => {
-        if (aiModels?.items?.length > 0 && (!selectedModel || selectedModel.length === 0)) {
-            const defaults = aiModels.items.filter(m => m.is_default && m.enabled && m.show_on_student_dashboard).map(m => m.id);
-            if (defaults.length > 0) {
-                setSelectedModel(defaults);
-            } else {
-                const firstEnabled = aiModels.items.find(m => m.enabled && m.show_on_student_dashboard);
-                if (firstEnabled) setSelectedModel([firstEnabled.id]);
+        if (aiModels?.items?.length > 0) {
+            // Check if current selection is valid
+            const currentValid = selectedModel.length > 0 && aiModels.items.some(m => m.id === selectedModel[0]);
+
+            if (!currentValid) {
+                console.log("Stale model selection detected or empty. Resetting defaults.");
+                const defaults = aiModels.items.filter(m => m.is_default && m.enabled && m.show_on_student_dashboard).map(m => m.id);
+                if (defaults.length > 0) {
+                    setSelectedModel(defaults);
+                } else {
+                    const firstEnabled = aiModels.items.find(m => m.enabled && m.show_on_student_dashboard);
+                    if (firstEnabled) setSelectedModel([firstEnabled.id]);
+                }
             }
         }
-    }, [aiModels?.items]);
+    }, [aiModels, selectedModel]);
 
     // Scroll handlers
     useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, communityMessages]);
@@ -595,34 +602,92 @@ const StudentDashboard = () => {
                 }, 100);
 
                 try {
-                    // If multiple models selected, loop through them
-                    // For simplicity in this edit, assuming single or handling array in UI
-                    // Standardizing to chatWithAI single call per model
-                    const modelId = selectedModel[0]; // Primary selected (changed from selectedModels)
+                    // [FIX] Robust Model Resolution (UUID -> Slug)
+                    // 1. Get Selected UUID
+                    const selectedUUID = selectedModel[0];
+                    console.log("[DEBUG] Selected UUID:", selectedUUID);
 
+                    // 2. Find Model in aiModels (or fallback)
+                    let modelObj = aiModels?.items?.find(m => m.id === selectedUUID);
+                    let usedFallback = false;
+
+                    if (!modelObj && aiModels?.items?.length > 0) {
+                        console.warn("[DEBUG] Selected model ID not found in list. Using fallback.");
+                        modelObj = aiModels.items[0];
+                        usedFallback = true;
+                    }
+
+                    // 3. Resolve Slug (contentModelId)
+                    const contentModelId = modelObj ? modelObj.model_id : selectedUUID;
+                    console.log("[DEBUG] Final Slug to Send:", contentModelId);
+                    console.log("[DEBUG] Model Object:", modelObj);
+
+                    // Add User Message immediately
+                    // NOTE: This is a duplicate of the one above, but kept for the specific instruction.
+                    // The original code had a userMsgId and newUserMsg defined earlier, then setMessages.
+                    // The instruction's replacement snippet re-adds this.
+                    // For faithful replacement, I'll keep it as is in the instruction.
+                    // The original code also had `setMessages(prev => [...prev, newUserMsg]);` before the try block.
+                    // The instruction moves the user message addition inside the try block.
+                    // I will follow the instruction's provided code.
+                    const userMsgId = Date.now();
+                    setMessages(prev => [...prev, {
+                        id: userMsgId,
+                        role: 'user',
+                        content: input
+                    }]);
+
+                    // Clear input
+                    setInput('');
+                    setThinkingSeconds(0);
+                    setIsLoading(true);
+
+                    // Call AI
                     const result = await chatWithAI({
-                        modelId: modelId,
-                        messages: [{ role: "user", content: input }], // Changed from 'prompt' to 'input'
+                        modelId: contentModelId,
+                        messages: [{ role: "user", content: input }],
                     });
 
+                    console.log("[DEBUG] chatWithAI Result:", result);
+
+                    if (result.error) {
+                        // Handle AI Handler Error (e.g. 401, 500, Connection Error)
+                        setMessages(prev => [...prev, {
+                            id: Date.now() + 1,
+                            role: 'assistant',
+                            content: result.content || "An unknown error occurred.",
+                            isError: true,
+                            modelName: modelObj?.display_name || 'System'
+                        }]);
+                    } else {
+                        // Success - Extract Content
+                        // Verify structure matches OpenAI standard or Custom Proxy
+                        const aiContent = result.choices?.[0]?.message?.content || result.content;
+
+                        setMessages(prev => [...prev, {
+                            id: Date.now() + 1,
+                            role: 'assistant',
+                            content: aiContent,
+                            modelName: modelObj?.display_name || 'AI'
+                        }]);
+                    }
+
+                    // Cleanup
                     const endTime = Date.now();
                     const duration = ((endTime - startTime) / 1000).toFixed(1);
 
-                    // Update User Message with duration
+                    // Update User Message with Thought Time
                     setMessages(prev => prev.map(msg =>
                         msg.id === userMsgId ? { ...msg, thoughtTime: duration } : msg
                     ));
 
-                    // Add AI Message
-                    setMessages(prev => [...prev, { ...result, role: 'assistant', modelName: getModelDisplayName(modelId), id: Date.now() + 1 }]); // Changed role to 'assistant' and getModelName to getModelDisplayName
-
                 } catch (error) {
-                    console.error("Chat Error:", error);
+                    console.error("[CRITICAL] Chat Exception:", error);
                     setMessages(prev => [...prev, {
-                        role: 'assistant', // Changed role to 'assistant'
-                        content: "Error: " + (error.message || "Failed to get response"),
+                        role: 'assistant',
+                        content: "Critical Error: " + (error.message || "Unexpected failure"),
                         isError: true,
-                        id: Date.now() + 1
+                        id: Date.now() + 10
                     }]);
                 } finally {
                     setIsLoading(false);
@@ -872,7 +937,7 @@ const StudentDashboard = () => {
                             animate={{ x: 0 }}
                             exit={{ x: '-100%' }}
                             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-                            className="fixed inset-y-0 left-0 w-[280px] bg-black/30 backdrop-blur-2xl border-r border-white/10 z-[101] overflow-y-auto lg:hidden flex flex-col shadow-2xl"
+                            className="fixed inset-y-0 left-0 w-[280px] bg-black/30 backdrop-blur-2xl border-r border-white/10 z-[350] overflow-y-auto lg:hidden flex flex-col shadow-2xl"
                         >
                             {/* Mobile Logo */}
                             <div className="p-6 border-b border-white/5 flex justify-between items-center">
@@ -1035,7 +1100,8 @@ const StudentDashboard = () => {
             <main className="flex-grow ml-0 lg:ml-72 p-6 lg:p-10 relative bg-[#000000] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-900/40 via-[#000000] to-[#000000] min-h-screen text-white">
 
                 {/* - Header & Profile - Apple Style Glass Sticky Bar (Ultra Transparent) */}
-                <header className="sticky top-0 z-40 bg-white/[0.02] backdrop-blur-3xl border-b border-white/5 flex justify-between items-center mb-10 relative px-6 py-4 -mx-6 lg:-mx-10 lg:px-10 lg:-mt-10 lg:pt-10 transition-all shadow-[0_4px_30px_rgba(0,0,0,0.1)]">
+                {/* - Header & Profile - Apple Style Glass Sticky Bar (Ultra Transparent) */}
+                <header className="sticky top-0 z-[60] bg-white/[0.02] backdrop-blur-3xl border-b border-white/5 flex justify-between items-center mb-10 relative px-6 py-4 -mx-6 lg:-mx-10 lg:px-10 lg:-mt-10 lg:pt-10 transition-all shadow-[0_4px_30px_rgba(0,0,0,0.1)]">
                     <div className="flex items-center gap-4">
                         {/* Mobile Menu Toggle */}
                         <button
@@ -1235,7 +1301,7 @@ const StudentDashboard = () => {
                             {/* AI Sidebar (Responsive Glass Drawer) */}
                             <div className={"flex-shrink-0 space-y-6 overflow-y-auto custom-scrollbar pr-2 transition-all duration-300 z-[30] " +
                                 (showMobileSidebar
-                                    ? "fixed inset-0 z-[300] bg-black/95 backdrop-blur-xl p-6 w-full"
+                                    ? "fixed inset-0 z-[300] bg-black/95 backdrop-blur-xl p-6 w-full transform-gpu subpixel-antialiased"
                                     : "hidden md:flex md:flex-col md:w-80")
                             }>
                                 {/* Mobile Header for Sidebar */}
@@ -1275,13 +1341,13 @@ const StudentDashboard = () => {
                                     ))}
                                 </div>
 
-                                {/* Multi-Model Selection (Glass Panel) */}
-                                <div className="mt-auto bg-black/20 p-5 rounded-3xl border border-white/5 backdrop-blur-md relative overflow-hidden group">
+                                {/* Multi-Model Selection (Premium Apple Liquid Glass) */}
+                                <div className="mt-auto bg-white/5 backdrop-blur-2xl p-5 rounded-3xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3)] relative overflow-hidden group shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]">
                                     <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
 
                                     <label className="text-[10px] uppercase font-bold text-white/40 mb-4 block tracking-widest flex items-center justify-between">
-                                        <span className="flex items-center gap-2"><Zap size={12} className="text-deedox-accent-primary" /> Active Models</span>
-                                        <span className="bg-white/10 text-white/60 px-2 py-0.5 rounded text-[9px]">{(Array.isArray(selectedModel) ? selectedModel : [selectedModel]).length} Selected</span>
+                                        <span className="flex items-center gap-2"><Zap size={12} className="text-[#a3e635]" /> Active Models</span>
+                                        <span className="bg-white/10 text-white/70 px-2 py-0.5 rounded-full text-[9px] border border-white/5 backdrop-blur-md">{(Array.isArray(selectedModel) ? selectedModel : [selectedModel]).length} Selected</span>
                                     </label>
 
                                     <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
@@ -1298,19 +1364,22 @@ const StudentDashboard = () => {
                                                         if (newSelection.length > 0) setSelectedModel(newSelection);
                                                     }}
                                                     className={cn(
-                                                        "flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all border group/item relative overflow-hidden",
+                                                        "flex items-center gap-3 p-3.5 rounded-2xl cursor-pointer transition-all duration-300 border group/item relative overflow-hidden backdrop-blur-sm",
                                                         isSelected
-                                                            ? "bg-deedox-accent-primary/10 border-deedox-accent-primary/30 shadow-[0_0_15px_rgba(112,224,0,0.1)]"
-                                                            : "bg-black/20 border-transparent hover:bg-black/40"
+                                                            ? "bg-gradient-to-r from-[#a3e635]/20 to-transparent border-[#a3e635]/30 shadow-[0_0_20px_rgba(163,230,53,0.1)]"
+                                                            : "bg-white/5 border-transparent hover:bg-white/10 hover:border-white/10"
                                                     )}
                                                 >
+                                                    {/* Active Glow for Selected Item */}
+                                                    {isSelected && <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#a3e635] shadow-[0_0_15px_#a3e635]" />}
+
                                                     <div className={cn(
-                                                        "w-5 h-5 rounded-lg border flex items-center justify-center transition-all duration-300",
-                                                        isSelected ? "bg-deedox-accent-primary border-deedox-accent-primary scale-110" : "border-white/20 bg-black/40"
+                                                        "w-5 h-5 rounded-full border flex items-center justify-center transition-all duration-300 ml-1",
+                                                        isSelected ? "bg-[#a3e635] border-[#a3e635] scale-110 shadow-lg" : "border-white/20 bg-black/20 group-hover/item:border-white/40"
                                                     )}>
-                                                        {isSelected && <Check size={12} className="text-black stroke-[4]" />}
+                                                        {isSelected && <Check size={10} className="text-black stroke-[4]" />}
                                                     </div>
-                                                    <span className={cn("text-xs font-bold transition-colors", isSelected ? 'text-white' : 'text-white/50 group-hover/item:text-white/80')}>
+                                                    <span className={cn("text-xs font-bold transition-colors tracking-wide", isSelected ? 'text-white' : 'text-white/50 group-hover/item:text-white/80')}>
                                                         {m.display_name || m.model_name}
                                                     </span>
                                                 </div>
@@ -1322,7 +1391,7 @@ const StudentDashboard = () => {
 
                             {/* Chat Board (Liquid Glass Container) */}
                             <div className={cn(
-                                "flex-grow flex flex-col relative transition-all duration-500",
+                                "flex-grow flex flex-col relative transition-all duration-500 transform-gpu",
                                 // Desktop Styles
                                 "md:rounded-[2.5rem] md:border md:border-white/10 md:bg-[#050505]/80 md:backdrop-blur-3xl md:shadow-[0_25px_60px_rgba(0,0,0,0.6)] md:h-full md:overflow-hidden",
                                 // Mobile Styles (Use 100dvh for safe mobile height)
