@@ -1,10 +1,17 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Rocket, LogIn, ArrowRight } from 'lucide-react';
+import SEO from '../components/common/SEO';
 
 const LoginGateway = () => {
     return (
         <div className="min-h-[85vh] flex items-center justify-center container mx-auto px-4 py-12 relative z-10 w-full">
+            <SEO
+                title="Login"
+                description="Access your DEEDOX Student Dashboard, AI tools, and community."
+                keywords="Login, Sign In, Student Dashboard, AI Tools Access"
+                url="/login"
+            />
             {/* Background Ambience (Localized) */}
             <div className="absolute top-[20%] right-[-10%] w-[500px] h-[500px] bg-[#70E000]/10 rounded-full blur-[120px] pointer-events-none" />
             <div className="absolute bottom-[10%] left-[-10%] w-[500px] h-[500px] bg-red-600/5 rounded-full blur-[120px] pointer-events-none" />

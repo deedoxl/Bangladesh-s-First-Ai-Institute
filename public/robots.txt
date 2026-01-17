@@ -1,0 +1,6 @@
+User-agent: *
+Disallow: /admin
+Disallow: /student
+Allow: /
+
+Sitemap: https://deedox.site/sitemap.xml

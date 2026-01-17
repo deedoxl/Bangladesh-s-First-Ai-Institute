@@ -107,30 +107,29 @@ Deno.serve(async (req: Request) => {
         }
 
         // 4. Fetch Global OpenRouter API Key
-        // [SECURE TEMPORARY CONFIG] Using User-Provided Key directly on Server Side
-        const SERVER_SIDE_KEY = "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";
+        let apiKey = null;
 
-        let apiKey = SERVER_SIDE_KEY;
+        // Priority 1: Database RPC (System Settings - Dynamic)
+        // We prioritize this so the Admin Panel setting takes immediate effect without redeploying env vars
+        const { data: dbKey, error: keyError } = await supabaseAdmin.rpc('get_decrypted_system_key');
 
-        // Fallback: check Env Var if hardcoded is empty (safety net)
-        if (!apiKey) apiKey = envKey;
+        if (!keyError && dbKey) {
+            apiKey = dbKey;
+            console.log("Using API Key from Database RPC.");
+        } else {
+            console.warn("RPC Key Fetch Failed or Empty, trying Env Var...", keyError);
+        }
 
-        // Priority 3: Database RPC (Legacy/Backup)
+        // Priority 2: Environment Variable (Fallback)
         if (!apiKey) {
-            console.log("No Server Key or Env Key found, trying Database RPC...");
-            const { data: dbKey, error: keyError } = await supabaseAdmin.rpc('get_decrypted_system_key');
-
-            if (!keyError && dbKey) {
-                apiKey = dbKey;
-            } else {
-                console.warn("RPC Key Fetch Failed or Empty:", keyError);
-            }
+            apiKey = envKey;
+            if (apiKey) console.log("Using API Key from Environment Variable.");
         }
 
         // Final Check
         if (!apiKey) {
             return new Response(JSON.stringify({
-                error: "Critical: No AI API Key found in Environment or Database."
+                error: "Critical: No AI API Key found in Database or Environment."
             }), {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
                 status: 200 // MANDATORY 5

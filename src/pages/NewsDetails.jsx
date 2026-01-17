@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { ArrowLeft, Calendar, Loader2, Share2 } from 'lucide-react';
 import Button from '../components/ui/Button';
+import SEO from '../components/common/SEO';
 
 const NewsDetails = () => {
     const { id } = useParams();
@@ -49,6 +50,14 @@ const NewsDetails = () => {
 
     return (
         <div className="min-h-screen bg-[#050505] text-white pt-24 pb-20 px-4 relative overflow-hidden">
+            <SEO
+                title={newsItem.title}
+                description={newsItem.description}
+                image={newsItem.image_url}
+                url={`/news/${newsItem.id}`}
+                type="article"
+                datePublished={newsItem.created_at}
+            />
             {/* Background Effects */}
             <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
                 <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-deedox-accent-primary/5 rounded-full blur-[120px]" />

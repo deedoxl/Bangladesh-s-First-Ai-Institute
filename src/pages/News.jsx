@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabaseClient';
 import { Calendar, ArrowRight, Mail, Sparkles, CheckCircle, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
+import SEO from '../components/common/SEO';
 
 const News = () => {
     const navigate = useNavigate();
@@ -61,6 +62,12 @@ const News = () => {
 
     return (
         <div className="min-h-screen bg-[#050505] text-white pt-20 md:pt-24 pb-20 px-4 relative overflow-hidden">
+            <SEO
+                title="AI News"
+                description="Latest updates and insights on Artificial Intelligence from DEEDOX."
+                keywords="AI News, Tech News, Artificial Intelligence Updates, Machine Learning News"
+                url="/news"
+            />
             {/* Background Effects */}
             <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
                 <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-deedox-accent-primary/5 rounded-full blur-[120px] animate-pulse-slow" />

@@ -11,6 +11,7 @@ import { useData } from '../context/DataContext';
 import { supabase } from '../lib/supabaseClient';
 import { uploadToCloudinary } from '../lib/cloudinary';
 import { chatWithAI } from '../lib/aiHandler';
+import SEO from '../components/common/SEO';
 
 const StudentDashboard = () => {
     const navigate = useNavigate();
@@ -236,6 +237,9 @@ const StudentDashboard = () => {
                     const history = {};
                     const counts = {};
                     dmMsgs.forEach(msg => {
+                        // [AI CHAT FILTER] Skip AI messages stored as self-DMs
+                        if (msg.text && msg.text.startsWith('{"isAiChat":')) return;
+
                         const partnerId = msg.sender_id === currentUser.id ? msg.receiver_id : msg.sender_id;
                         if (!partnerId) return;
                         if (!history[partnerId]) history[partnerId] = [];
@@ -321,17 +325,112 @@ const StudentDashboard = () => {
     }, [currentUser, activeCommunityId]);
 
 
-    // --- Old Local Persistence (Chat with AI) ---
-    const chatStorageKey = 'deedox_chat_' + (currentUser?.email || 'guest');
-    const [messages, setMessages] = useState(() => {
-        try {
-            const saved = localStorage.getItem(chatStorageKey);
-            return saved ? JSON.parse(saved) : [];
-        } catch (e) { return []; }
-    });
+    // --- AI Chat History & Persistence (DB Backed) ---
+    const [aiSessions, setAiSessions] = useState({});
+    const [currentSessionId, setCurrentSessionId] = useState(null);
+
+    // Initialize Session
     useEffect(() => {
-        if (messages.length > 0) localStorage.setItem(chatStorageKey, JSON.stringify(messages));
-    }, [messages, chatStorageKey]);
+        if (!currentSessionId) setCurrentSessionId(Date.now().toString());
+    }, []);
+
+    // Load AI History & Cleanup (>24h)
+    useEffect(() => {
+        if (!currentUser) return;
+
+        const loadAiHistory = async () => {
+            // Fetch self-DMs that are AI chats
+            const { data } = await supabase.from('messages')
+                .select('*')
+                .eq('sender_id', currentUser.id)
+                .eq('receiver_id', currentUser.id)
+                .order('created_at', { ascending: true });
+
+            if (data) {
+                const now = Date.now();
+                const validMessages = [];
+                const idsToDelete = [];
+
+                data.forEach(m => {
+                    // Check if it's an AI message
+                    if (m.text && m.text.startsWith('{"isAiChat":')) {
+                        // Check 24h Expiry
+                        if (now - new Date(m.created_at).getTime() > 86400000) {
+                            idsToDelete.push(m.id);
+                        } else {
+                            try {
+                                const content = JSON.parse(m.text);
+                                validMessages.push({ ...content, createdAt: m.created_at, dbId: m.id });
+                            } catch (e) { }
+                        }
+                    }
+                });
+
+                // Backend Cleanup (Request-Time)
+                if (idsToDelete.length > 0) {
+                    await supabase.from('messages').delete().in('id', idsToDelete);
+                    console.log(`Cleaned up ${idsToDelete.length} expired AI messages.`);
+                }
+
+                // Group by Session
+                const sessions = {};
+                validMessages.forEach(m => {
+                    const sId = m.sessionId || 'default';
+                    if (!sessions[sId]) sessions[sId] = [];
+                    sessions[sId].push(m);
+                });
+
+                setAiSessions(sessions);
+
+                // If no active session, or current one empty, maybe pick last?
+                // Actually keep currentSessionId unique for "New Chat" logic
+            }
+        };
+
+        loadAiHistory();
+    }, [currentUser, activeTab]); // Reload when tab opens
+
+    const createNewChat = () => {
+        const newId = Date.now().toString();
+        setCurrentSessionId(newId);
+        setInput('');
+        setAiSessions(prev => ({
+            ...prev,
+            [newId]: []
+        }));
+    };
+
+    const deleteAiSession = async (sessionId, e) => {
+        e?.stopPropagation(); // Prevent switching to the session being deleted
+
+        // Optimistic UI Update
+        setAiSessions(prev => {
+            const temp = { ...prev };
+            delete temp[sessionId];
+            return temp;
+        });
+
+        // If deleting current session, switch to new one
+        if (currentSessionId === sessionId) {
+            createNewChat();
+        }
+
+        // DB Delete
+        // Need to find all messages in this session.
+        // Since we are optimistic, we can't easily get the IDs from the state we just deleted *unless* we kept them.
+        // But we have them in the closure before deleting from state? No, access from state directly.
+
+        const sessionMessages = aiSessions[sessionId];
+        if (sessionMessages && sessionMessages.length > 0) {
+            const idsToDelete = sessionMessages.map(m => m.dbId).filter(Boolean);
+            if (idsToDelete.length > 0) {
+                await supabase.from('messages').delete().in('id', idsToDelete);
+            }
+        }
+    };
+
+    // Derived messages for current session
+    const currentMessages = aiSessions[currentSessionId] || [];
 
 
     // --- Mock Data constants ---
@@ -410,7 +509,7 @@ const StudentDashboard = () => {
     }, [aiModels, selectedModel]);
 
     // Scroll handlers
-    useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, communityMessages]);
+    useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [communityMessages]);
     useEffect(() => { dmEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [activeChatPartner, dmHistory]);
 
 
@@ -575,186 +674,185 @@ const StudentDashboard = () => {
 
         if (currentModels.length === 0) {
             alert("Please select at least one model.");
-            if (selectedModel.length > 0) {
-                // [CHANGE] Using APPEND logic + Thinking Logic
-                const startTime = Date.now();
-                const userMsgId = Date.now();
-
-                const newUserMsg = {
-                    id: userMsgId,
-                    role: 'user',
-                    content: input, // Changed from 'prompt' to 'input'
-                    model: 'User',
-                    startTime,
-                    thoughtTime: null
-                };
-
-                setMessages(prev => [...prev, newUserMsg]);
-                setInput(''); // Changed from 'setPrompt' to 'setInput'
-                setThinkingSeconds(0);
-                setIsLoading(true);
-
-                // [FIX] Scroll to bottom immediately on send
-                setTimeout(() => {
-                    if (messagesEndRef.current) {
-                        messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-                    }
-                }, 100);
-
-                try {
-                    // [FIX] Robust Model Resolution (UUID -> Slug)
-                    // 1. Get Selected UUID
-                    const selectedUUID = selectedModel[0];
-                    console.log("[DEBUG] Selected UUID:", selectedUUID);
-
-                    // 2. Find Model in aiModels (or fallback)
-                    let modelObj = aiModels?.items?.find(m => m.id === selectedUUID);
-                    let usedFallback = false;
-
-                    if (!modelObj && aiModels?.items?.length > 0) {
-                        console.warn("[DEBUG] Selected model ID not found in list. Using fallback.");
-                        modelObj = aiModels.items[0];
-                        usedFallback = true;
-                    }
-
-                    // 3. Resolve Slug (contentModelId)
-                    const contentModelId = modelObj ? modelObj.model_id : selectedUUID;
-                    console.log("[DEBUG] Final Slug to Send:", contentModelId);
-                    console.log("[DEBUG] Model Object:", modelObj);
-
-                    // Add User Message immediately
-                    // NOTE: This is a duplicate of the one above, but kept for the specific instruction.
-                    // The original code had a userMsgId and newUserMsg defined earlier, then setMessages.
-                    // The instruction's replacement snippet re-adds this.
-                    // For faithful replacement, I'll keep it as is in the instruction.
-                    // The original code also had `setMessages(prev => [...prev, newUserMsg]);` before the try block.
-                    // The instruction moves the user message addition inside the try block.
-                    // I will follow the instruction's provided code.
-                    const userMsgId = Date.now();
-                    setMessages(prev => [...prev, {
-                        id: userMsgId,
-                        role: 'user',
-                        content: input
-                    }]);
-
-                    // Clear input
-                    setInput('');
-                    setThinkingSeconds(0);
-                    setIsLoading(true);
-
-                    // Call AI
-                    const result = await chatWithAI({
-                        modelId: contentModelId,
-                        messages: [{ role: "user", content: input }],
-                    });
-
-                    console.log("[DEBUG] chatWithAI Result:", result);
-
-                    if (result.error) {
-                        // Handle AI Handler Error (e.g. 401, 500, Connection Error)
-                        setMessages(prev => [...prev, {
-                            id: Date.now() + 1,
-                            role: 'assistant',
-                            content: result.content || "An unknown error occurred.",
-                            isError: true,
-                            modelName: modelObj?.display_name || 'System'
-                        }]);
-                    } else {
-                        // Success - Extract Content
-                        // Verify structure matches OpenAI standard or Custom Proxy
-                        const aiContent = result.choices?.[0]?.message?.content || result.content;
-
-                        setMessages(prev => [...prev, {
-                            id: Date.now() + 1,
-                            role: 'assistant',
-                            content: aiContent,
-                            modelName: modelObj?.display_name || 'AI'
-                        }]);
-                    }
-
-                    // Cleanup
-                    const endTime = Date.now();
-                    const duration = ((endTime - startTime) / 1000).toFixed(1);
-
-                    // Update User Message with Thought Time
-                    setMessages(prev => prev.map(msg =>
-                        msg.id === userMsgId ? { ...msg, thoughtTime: duration } : msg
-                    ));
-
-                } catch (error) {
-                    console.error("[CRITICAL] Chat Exception:", error);
-                    setMessages(prev => [...prev, {
-                        role: 'assistant',
-                        content: "Critical Error: " + (error.message || "Unexpected failure"),
-                        isError: true,
-                        id: Date.now() + 10
-                    }]);
-                } finally {
-                    setIsLoading(false);
-                    // [FIX] Scroll to bottom on complete
-                    setTimeout(() => {
-                        if (messagesEndRef.current) {
-                            messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-                        }
-                    }, 100);
-                }
-            } else {
-                // Handle no model selected
-            }
-            return; // Added return to exit if no model is selected and the premium logic is not triggered
+            return;
         }
 
+        const startTime = Date.now();
+        const userMsgId = Date.now();
+        const userPayload = {
+            isAiChat: true,
+            sessionId: currentSessionId,
+            role: 'user',
+            content: input,
+            model: 'User',
+            startTime,
+            thoughtTime: null,
+            id: userMsgId
+        };
 
-        const userMsg = { role: 'user', content: input };
-        setMessages(prev => [...prev, userMsg]);
+        // Optimistic UI
+        setAiSessions(prev => ({
+            ...prev,
+            [currentSessionId]: [...(prev[currentSessionId] || []), userPayload]
+        }));
+
+        // DB Save
+        // DB Save
+        supabase.from('messages').insert({
+            sender_id: currentUser.id,
+            receiver_id: currentUser.id,
+            text: JSON.stringify(userPayload)
+        }).select().single().then(({ data }) => {
+            if (data) {
+                // Update local state with real DB ID
+                setAiSessions(prev => ({
+                    ...prev,
+                    [currentSessionId]: prev[currentSessionId].map(m => m.id === userMsgId ? { ...m, dbId: data.id } : m)
+                }));
+            }
+        });
+
+        const currentInput = input;
         setInput('');
+        setThinkingSeconds(0);
         setIsLoading(true);
+        setTimeout(() => {
+            if (messagesEndRef.current) {
+                messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+            }
+        }, 100);
 
         try {
-            // Use Unified AI Service (Direct or Proxy)
-            // This handles CLIENT key (dev) or PROXY (prod) automatically.
             const fetchPromises = currentModels.map(async (modelId) => {
-                const history = messages.map(m => ({ role: m.role, content: m.content }));
+                // 1. Resolve Model
+                let modelObj = aiModels?.items?.find(m => m.id === modelId);
+                if (!modelObj && aiModels?.items?.length > 0) modelObj = aiModels.items[0];
+                const contentModelId = modelObj ? modelObj.model_id : modelId;
+
+                // 2. Prepare History (Include System Prompt)
+                const history = currentMessages.map(m => ({ role: m.role, content: m.content }));
                 const fullMessages = [
-                    { "role": "system", "content": aiModes[aiMode].systemPrompt },
+                    { role: "system", content: aiModes[aiMode]?.systemPrompt || "You are a helpful assistant." },
                     ...history,
-                    userMsg
+                    { role: "user", content: currentInput }
                 ];
 
-                const { sendAIMessage } = await import('../services/aiService');
-                const result = await sendAIMessage({ modelId, messages: fullMessages });
+                // 3. Call API
+                const result = await chatWithAI({
+                    modelId: contentModelId,
+                    messages: fullMessages
+                });
 
-                // Standardize Result
-                if (result.error) throw new Error(result.error);
+                // 4. Process Response
+                if (result.error) {
+                    return {
+                        isAiChat: true,
+                        sessionId: currentSessionId,
+                        id: Date.now() + Math.random(),
+                        role: 'assistant',
+                        content: "Error: " + (result.content || "Unknown"),
+                        isError: true,
+                        modelName: modelObj?.display_name || 'System'
+                    };
+                }
+
+                const aiContent = result.choices?.[0]?.message?.content || result.content;
                 return {
+                    isAiChat: true,
+                    sessionId: currentSessionId,
+                    id: Date.now() + Math.random(),
                     role: 'assistant',
-                    content: result.content || result.choices?.[0]?.message?.content || "No response",
-                    modelName: getModelDisplayName(modelId)
+                    content: aiContent,
+                    modelName: modelObj?.display_name || 'AI'
                 };
             });
 
             const results = await Promise.all(fetchPromises);
-            setMessages(prev => [...prev, ...results]);
+
+            // Update UI with Results
+            setAiSessions(prev => ({
+                ...prev,
+                [currentSessionId]: [...(prev[currentSessionId] || []), ...results]
+            }));
+
+            // Save Results to DB
+            const dbPromises = results.map(payload =>
+                supabase.from('messages').insert({
+                    sender_id: currentUser.id,
+                    receiver_id: currentUser.id,
+                    text: JSON.stringify(payload)
+                }).select().single()
+            );
+            const dbResults = await Promise.all(dbPromises);
+
+            // Update UI with DB IDs for AI responses
+            setAiSessions(prev => {
+                const currentList = [...(prev[currentSessionId] || [])];
+                results.forEach((res, idx) => {
+                    const dbData = dbResults[idx].data;
+                    if (dbData) {
+                        // Find the message we just added (by its temporary ID) and add dbId
+                        const msgIndex = currentList.findIndex(m => m.id === res.id);
+                        if (msgIndex !== -1) {
+                            currentList[msgIndex] = { ...currentList[msgIndex], dbId: dbData.id };
+                        } else {
+                            // Fallback: Just push it if not found (race condition protection)
+                            // Actually, since we did optimistic update above, we should map over state
+                        }
+                    }
+                });
+
+                // Re-map entire session to be safe
+                const newSessionMsgs = (prev[currentSessionId] || []).map(m => {
+                    const dbMatch = dbResults.find(r => r.data && JSON.parse(r.data.text).id === m.id);
+                    return dbMatch ? { ...m, dbId: dbMatch.data.id } : m;
+                });
+
+                return {
+                    ...prev,
+                    [currentSessionId]: newSessionMsgs
+                };
+            });
+
+            // Cleanup & Thought Time
+            const endTime = Date.now();
+            const duration = ((endTime - startTime) / 1000).toFixed(1);
+
+            setAiSessions(prev => ({
+                ...prev,
+                [currentSessionId]: prev[currentSessionId].map(msg =>
+                    msg.id === userMsgId ? { ...msg, thoughtTime: duration } : msg
+                )
+            }));
 
         } catch (error) {
-            console.error("AI Error:", error);
-            setMessages(prev => [...prev, { role: 'assistant', content: 'Connection Error: ' + (error.message || "Unknown"), isError: true }]);
+            console.error("AI Logic Error:", error);
+            const errorPayload = {
+                isAiChat: true,
+                sessionId: currentSessionId,
+                id: Date.now(),
+                role: 'assistant',
+                content: "Connection Error: " + error.message,
+                isError: true,
+                modelName: "System"
+            };
+            setAiSessions(prev => ({
+                ...prev,
+                [currentSessionId]: [...(prev[currentSessionId] || []), errorPayload]
+            }));
         } finally {
             setIsLoading(false);
+            setTimeout(() => {
+                if (messagesEndRef.current) {
+                    messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+                }
+            }, 100);
         }
-
     };
 
-    // ... [existing community handlers] ... 
 
-    // [SKIPPING LINES 589-1099 for brevity in this tool call, replacing mainly Logic + Layout in Render]
-    /* NOTE: I cannot skip lines in replace_file_content like this. 
-       I must target specific chunks. I will split this into two calls:
-       1. Logic Fix (handleSendMessage)
-       2. Layout Fix (Render Return)
-    */
 
-    // --- Handlers ---
+
     const handleCommunitySend = async (e) => {
         e?.preventDefault();
         if (!communityInput.trim()) return;
@@ -867,6 +965,19 @@ const StudentDashboard = () => {
 
     return (
         <div className={`min-h-screen bg-transparent flex text-white font-sans overflow-hidden ${settings.neonEffectEnabled ? 'neon-dashboard-active' : ''}`}>
+            <SEO
+                title={
+                    activeTab === 'community' ? 'Community' :
+                        activeTab === 'social' ? 'Social Feed' :
+                            activeTab === 'news' ? 'AI News' :
+                                activeTab === 'ai_suite' ? 'AI Studio' :
+                                    activeTab === 'programs' ? 'Programs' :
+                                        'Student Dashboard'
+                }
+                description="Your personal AI learning dashboard. Access tools, community, and courses."
+                url="/student/dashboard"
+                robots="noindex"
+            />
             {/* Neon Visual Effect Styles */}
             {/* Neon Visual Effect Styles */}
             {settings.neonEffectEnabled && (
@@ -1101,7 +1212,7 @@ const StudentDashboard = () => {
 
                 {/* - Header & Profile - Apple Style Glass Sticky Bar (Ultra Transparent) */}
                 {/* - Header & Profile - Apple Style Glass Sticky Bar (Ultra Transparent) */}
-                <header className="sticky top-0 z-[60] bg-white/[0.02] backdrop-blur-3xl border-b border-white/5 flex justify-between items-center mb-10 relative px-6 py-4 -mx-6 lg:-mx-10 lg:px-10 lg:-mt-10 lg:pt-10 transition-all shadow-[0_4px_30px_rgba(0,0,0,0.1)]">
+                <header className="sticky top-0 z-[60] bg-white/[0.02] backdrop-blur-3xl border-b border-white/5 flex justify-between items-center mb-10 relative px-6 py-4 -mx-6 -mt-6 pt-6 lg:-mx-10 lg:px-10 lg:-mt-10 lg:pt-10 transition-all shadow-[0_4px_30px_rgba(0,0,0,0.1)]">
                     <div className="flex items-center gap-4">
                         {/* Mobile Menu Toggle */}
                         <button
@@ -1316,7 +1427,7 @@ const StudentDashboard = () => {
                                     {Object.entries(aiModes).map(([nodes, mode]) => (
                                         <button
                                             key={nodes}
-                                            onClick={() => { setAiMode(nodes); setMessages([]); setShowMobileSidebar(false); }}
+                                            onClick={() => { setAiMode(nodes); createNewChat(); setShowMobileSidebar(false); }}
                                             className={cn(
                                                 "w-full text-left p-4 rounded-2xl border transition-all duration-300 flex items-center gap-4 relative overflow-hidden group",
                                                 aiMode === nodes
@@ -1385,6 +1496,44 @@ const StudentDashboard = () => {
                                                 </div>
                                             );
                                         })}
+                                    </div>
+                                </div>
+                                {/* History & Modes */}
+                                <div className="mt-6">
+                                    <div className="flex items-center justify-between mb-2 px-1">
+                                        <label className="text-[10px] uppercase font-bold text-white/40 tracking-widest">Chat History (24h)</label>
+                                        <button onClick={createNewChat} className="hidden md:flex text-[10px] bg-white/5 border border-white/10 text-white px-3 py-1.5 rounded-full items-center gap-1.5 hover:bg-[#a3e635] hover:text-black hover:border-transparent transition-all shadow-[0_4px_12px_rgba(0,0,0,0.5)] backdrop-blur-md font-bold uppercase tracking-wider">
+                                            <Plus size={12} /> New Chat
+                                        </button>
+                                    </div>
+                                    <div className="space-y-1 max-h-[200px] overflow-y-auto custom-scrollbar">
+                                        {Object.keys(aiSessions).sort().reverse().map(sId => (
+                                            <div
+                                                key={sId}
+                                                className={cn(
+                                                    "group flex items-center gap-2 p-2 rounded-xl transition-all cursor-pointer",
+                                                    currentSessionId === sId ? "bg-white/10" : "hover:bg-white/5"
+                                                )}
+                                                onClick={() => { setCurrentSessionId(sId); if (window.innerWidth < 768) setShowMobileSidebar(false); }}
+                                            >
+                                                <div className="flex-grow min-w-0">
+                                                    <p className={cn("text-xs truncate transition-colors", currentSessionId === sId ? "text-white font-medium" : "text-white/40 group-hover:text-white/80")}>
+                                                        {aiSessions[sId]?.[0]?.content?.substring(0, 30) || "New Conversation"}...
+                                                    </p>
+                                                    <p className="text-[9px] text-white/20 truncate">{(new Date(parseInt(sId) || Date.now())).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                                </div>
+                                                <button
+                                                    onClick={(e) => deleteAiSession(sId, e)}
+                                                    className="opacity-0 group-hover:opacity-100 p-1.5 text-white/20 hover:text-red-400 hover:bg-white/10 rounded-lg transition-all"
+                                                    title="Delete Chat"
+                                                >
+                                                    <Trash2 size={12} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                        {Object.keys(aiSessions).length === 0 && (
+                                            <p className="text-white/20 text-[10px] italic p-2">No active history.</p>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -1477,7 +1626,7 @@ const StudentDashboard = () => {
 
                                 {/* Chat Messages Area */}
                                 <div className="flex-grow px-4 md:px-8 py-6 space-y-8 overflow-y-auto custom-scrollbar scroll-smooth relative z-0 pb-32">
-                                    {messages.length === 0 && (
+                                    {currentMessages.length === 0 && (
                                         <div className="h-full flex flex-col items-center justify-center opacity-60 animate-fade-in">
                                             <div className="w-24 h-24 rounded-[2.5rem] bg-gradient-to-tr from-white/5 to-transparent border border-white/10 flex items-center justify-center mb-8 shadow-2xl backdrop-blur-xl group">
                                                 <Bot size={40} className="text-white/80 group-hover:scale-110 transition-transform duration-500" />
@@ -1490,7 +1639,7 @@ const StudentDashboard = () => {
                                     )}
 
                                     <AnimatePresence mode="popLayout">
-                                        {messages.map((msg, idx) => (
+                                        {currentMessages.map((msg, idx) => (
                                             <motion.div
                                                 key={idx}
                                                 initial={{ opacity: 0, y: 20, scale: 0.98 }}
@@ -1921,6 +2070,7 @@ const StudentDashboard = () => {
                     )
                 }
             </main >
+
 
             {/* --- EDIT PROFILE MODAL --- */}
             < AnimatePresence >

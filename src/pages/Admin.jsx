@@ -5,6 +5,7 @@ import Button from '../components/ui/Button';
 import { Lock, Key, Save, Shield, LayoutDashboard, Users, FileText, Link as LinkIcon, Edit, Trash, Plus, Upload, Image as ImageIcon, Type, Globe, Share2, Briefcase, Zap, Bot, Database, Layers, Compass, Sun, CheckCircle, HelpCircle, LogOut, ChevronRight, Settings, Sparkles, MessageSquare, Newspaper, Cpu, Mail, Target, Quote } from 'lucide-react';
 import { handleImageUpload, InputGroup, TextAreaGroup, ImageUploader } from '../components/admin/AdminHelpers';
 import { supabase } from '../lib/supabaseClient';
+import { Helmet } from 'react-helmet-async';
 
 const Admin = () => {
     const {
@@ -337,7 +338,7 @@ const Admin = () => {
     // --- News Manager Logic ---
     const NewsManager = () => {
         const [newsItems, setNewsItems] = useState([]);
-        const [editing, setEditing] = useState(null); // null = list mode, {} = create/edit mode
+        const [editing, setEditing] = useState(null); // null = list mode, { } = create/edit mode
         const [loadingNews, setLoadingNews] = useState(false);
 
         // Fetch on mount of this component (when tab active)
@@ -609,6 +610,10 @@ const Admin = () => {
 
     return (
         <div className="min-h-screen bg-[#050505] pt-10 px-4 pb-20">
+            <Helmet>
+                <title>Admin Panel - DEEDOX</title>
+                <meta name="robots" content="noindex" />
+            </Helmet>
             <div className="container mx-auto max-w-7xl">
                 <div className="glass-card p-4 md:p-8 rounded-3xl border border-white/10 min-h-[85vh] flex flex-col md:flex-row gap-8">
 

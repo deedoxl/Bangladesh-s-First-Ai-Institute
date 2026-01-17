@@ -5,8 +5,10 @@ import { Bot, Send, AlertTriangle, Check, Layers, Cpu, Image as ImageIcon, Mic, 
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../utils/cn';
 import { chatWithAI } from '../lib/aiHandler';
+import SEO from '../components/common/SEO';
 
 const AITools = () => {
+    // ... (rest of the component state)
     // USE NEW aiModels and capabilities from DataContext (DB-Driven)
     const { settings, aiModels, capabilities, apiKeyMasked } = useData();
     const [prompt, setPrompt] = useState('');
@@ -199,6 +201,12 @@ const AITools = () => {
 
     return (
         <div className="min-h-screen pt-24 pb-10 container mx-auto px-4 flex flex-col gap-6 font-sans">
+            <SEO
+                title="AI Tools"
+                description="Explore advanced AI tools for chat, image generation, voice processing, and coding assistance."
+                keywords="AI Tools, Chatbot, Image Generator, Voice AI, Coding Assistant, Free AI Tools"
+                url="/ai-tools"
+            />
             {/* Background Glows */}
             {/* Premium Neon Glass Background Animation */}
             <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden transform-gpu" style={{ backfaceVisibility: 'hidden' }}>
@@ -406,7 +414,7 @@ const AITools = () => {
                     {/* Input Area (Floating Glass Bar) */}
                     <div className="absolute bottom-6 left-4 right-4 md:left-8 md:right-8 z-20">
                         <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="relative group">
-                            <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent -z-10 h-32 -bottom-6 pointer-events-none opacity-50" />
+
 
                             <div className="bg-black/60 backdrop-blur-[20px] border border-white/10 p-2 pl-6 rounded-full flex items-center gap-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)] transition-all focus-within:bg-black/80 focus-within:border-white/20 focus-within:shadow-[0_20px_60px_rgba(0,0,0,0.8)] focus-within:scale-[1.01]">
                                 <Globe size={20} className="text-white/20" />

@@ -5,8 +5,10 @@ import { Loader2 } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { supabase } from '../lib/supabaseClient';
 import logoDeedox from '../assets/logo-deedox.png';
+import SEO from '../components/common/SEO';
 
 const StudentLogin = () => {
+    // ... component implementation
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -116,6 +118,12 @@ const StudentLogin = () => {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-[#050505] relative overflow-hidden font-sans">
+            <SEO
+                title={isLogin ? "Login - Student Dashboard" : "Sign Up - Student Dashboard"}
+                description="Access the DEEDOX Student Dashboard to control your AI learning journey."
+                keywords="Student Login, DEEDOX Dashboard, AI Education Platform"
+                url="/student/login"
+            />
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
                 <div className="absolute top-[-20%] left-[-10%] w-[80%] h-[80%] bg-[#0f3b14] rounded-full blur-[150px] opacity-40" />
                 <div className="absolute bottom-[-20%] right-[-10%] w-[80%] h-[80%] bg-[#08220b] rounded-full blur-[150px] opacity-40" />
