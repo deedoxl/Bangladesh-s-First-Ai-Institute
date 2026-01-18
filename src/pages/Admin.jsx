@@ -93,7 +93,7 @@ const Admin = () => {
         setLoading(true);
 
         try {
-            const { supabase } = await import('../lib/supabaseClient');
+            // const { supabase } = await import('../lib/supabaseClient');
 
             // 1. Hash the entered password
             const hashedPassword = await hashPassword(creds.password);
@@ -348,7 +348,7 @@ const Admin = () => {
 
         const fetchNews = async () => {
             setLoadingNews(true);
-            const { supabase } = await import('../lib/supabaseClient');
+            // const { supabase } = await import('../lib/supabaseClient');
             const { data } = await supabase.from('news').select('*').order('created_at', { ascending: false });
             if (data) setNewsItems(data);
             setLoadingNews(false);
@@ -410,7 +410,7 @@ const Admin = () => {
 
         const handleDelete = async (id) => {
             if (!window.confirm("Delete this news item?")) return;
-            const { supabase } = await import('../lib/supabaseClient');
+            // const { supabase } = await import('../lib/supabaseClient');
             const { error } = await supabase.from('news').delete().eq('id', id);
             if (error) {
                 alert("Failed to delete: " + error.message);
@@ -424,7 +424,7 @@ const Admin = () => {
             // Optimistic update
             setNewsItems(prev => prev.map(n => n.id === item.id ? { ...n, is_published: newValue } : n));
 
-            const { supabase } = await import('../lib/supabaseClient');
+            // const { supabase } = await import('../lib/supabaseClient');
             const { error } = await supabase.from('news').update({ is_published: newValue }).eq('id', item.id);
 
             if (error) {
@@ -548,7 +548,7 @@ const Admin = () => {
 
         const fetchSubs = async () => {
             setLoadingSubs(true);
-            const { supabase } = await import('../lib/supabaseClient');
+            // const { supabase } = await import('../lib/supabaseClient');
             const { data } = await supabase.from('newsletter_subscribers').select('*').order('created_at', { ascending: false });
             if (data) setSubscribers(data);
             setLoadingSubs(false);
@@ -562,7 +562,7 @@ const Admin = () => {
 
         const handleDeleteSub = async (id) => {
             if (!window.confirm("Remove this subscriber?")) return;
-            const { supabase } = await import('../lib/supabaseClient');
+            // const { supabase } = await import('../lib/supabaseClient');
             await supabase.from('newsletter_subscribers').delete().eq('id', id);
             fetchSubs();
         }
