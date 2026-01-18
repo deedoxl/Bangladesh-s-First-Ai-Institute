@@ -145,7 +145,7 @@ const StudentLogin = () => {
                     </p>
 
                     {message && (
-                        <div className={`p-4 rounded-xl text-center mb-6 text-sm font-medium ${message.includes('✅') ? 'bg-[#1a2e1b] border border-[#2e5c30] text-[#a3e6a7]' : 'bg-red-900/20 border border-red-900 text-red-200'}`}>
+                        <div className={`p-4 rounded-xl text-center mb-6 text-sm font-medium backdrop-blur-md transition-all duration-300 ${message.includes('✅') ? 'bg-[#C6F221]/10 border border-[#C6F221]/20 text-[#C6F221] shadow-[0_0_20px_rgba(198,242,33,0.1)]' : 'bg-red-500/10 border border-red-500/20 text-red-400'}`}>
                             {message}
                         </div>
                     )}
@@ -191,17 +191,21 @@ const StudentLogin = () => {
                     ) : (
                         <form onSubmit={handleVerifyOtp} className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
                             <div className="space-y-2">
-                                <label className="text-[13px] font-bold text-white block">Enter Login Code</label>
-                                <input
-                                    type="text"
-                                    placeholder="123456"
-                                    value={otp}
-                                    onChange={e => setOtp(e.target.value)}
-                                    className="w-full bg-[#1A1A1A] border border-[#333] px-4 py-3.5 rounded-xl text-white outline-none focus:border-[#C6F221] transition-all placeholder:text-[#444] text-[15px] tracking-[1em] text-center font-mono text-lg"
-                                    required
-                                    autoFocus
-                                    disabled={loading}
-                                />
+                                <label className="text-sm font-medium text-white/70 block mb-3 uppercase tracking-wider">Enter Login Code</label>
+                                <div className="relative group">
+                                    <div className="absolute inset-0 bg-[#C6F221]/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                                    <input
+                                        type="text"
+                                        placeholder="------"
+                                        value={otp}
+                                        onChange={e => setOtp(e.target.value)}
+                                        className="relative w-full bg-white/5 backdrop-blur-xl border border-white/10 px-4 py-5 rounded-2xl text-white outline-none focus:border-[#C6F221]/50 focus:bg-white/10 focus:shadow-[0_0_30px_rgba(198,242,33,0.1)] transition-all placeholder:text-white/5 text-2xl tracking-[0.8em] text-center font-mono font-bold"
+                                        required
+                                        autoFocus
+                                        disabled={loading}
+                                        maxLength={6}
+                                    />
+                                </div>
                                 <div className="flex justify-between items-center text-xs mt-2 px-1">
                                     <button
                                         type="button"

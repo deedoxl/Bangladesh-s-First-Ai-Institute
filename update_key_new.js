@@ -6,7 +6,7 @@ const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-const NEW_KEY = "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";
+const NEW_KEY = "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";
 
 async function updateKey() {
     console.log("Updating API Key to:", NEW_KEY.substring(0, 15) + "...");
