@@ -1198,7 +1198,7 @@ export const DataProvider = ({ children }) => {
             loadingAuth,
 
             missionContent, updateMission,
-            missionContent, updateMission,
+
             testimonials: testimonialsActions,
 
             // Global Save
