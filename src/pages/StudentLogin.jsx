@@ -78,8 +78,8 @@ const StudentLogin = () => {
             const cleanEmail = email.trim().toLowerCase();
             const cleanOtp = otp.trim();
 
-            if (!cleanOtp || cleanOtp.length < 6) {
-                throw new Error("OTP must be at least 6 digits.");
+            if (!cleanOtp) {
+                throw new Error("Please enter verification code.");
             }
 
             // Use ONLY this (Standard Supabase OTP Verify)
@@ -196,14 +196,14 @@ const StudentLogin = () => {
                                     <div className="absolute inset-0 bg-[#C6F221]/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                                     <input
                                         type="text"
-                                        placeholder="------"
+                                        placeholder="--------"
                                         value={otp}
                                         onChange={e => setOtp(e.target.value)}
                                         className="relative w-full bg-white/5 backdrop-blur-xl border border-white/10 px-4 py-5 rounded-2xl text-white outline-none focus:border-[#C6F221]/50 focus:bg-white/10 focus:shadow-[0_0_30px_rgba(198,242,33,0.1)] transition-all placeholder:text-white/5 text-2xl tracking-[0.8em] text-center font-mono font-bold"
                                         required
                                         autoFocus
                                         disabled={loading}
-                                        maxLength={6}
+                                        maxLength={8}
                                     />
                                 </div>
                                 <div className="flex justify-between items-center text-xs mt-2 px-1">

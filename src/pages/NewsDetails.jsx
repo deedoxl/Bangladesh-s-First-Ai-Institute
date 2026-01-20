@@ -31,6 +31,24 @@ const NewsDetails = () => {
         fetchNewsItem();
     }, [id]);
 
+    const handleShare = async () => {
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: newsItem.title,
+                    text: newsItem.description,
+                    url: window.location.href,
+                });
+            } catch (error) {
+                console.log('Error sharing:', error);
+            }
+        } else {
+            // Fallback: Copy to clipboard
+            navigator.clipboard.writeText(window.location.href);
+            alert('Link copied to clipboard!');
+        }
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen bg-[#050505] flex items-center justify-center text-white">
@@ -57,6 +75,7 @@ const NewsDetails = () => {
                 url={`/news/${newsItem.id}`}
                 type="article"
                 datePublished={newsItem.created_at}
+                dateModified={newsItem.updated_at || newsItem.created_at}
             />
             {/* Background Effects */}
             <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
@@ -103,7 +122,11 @@ const NewsDetails = () => {
                         <div className="text-lg text-deedox-accent-primary font-medium italic">
                             "{newsItem.description}"
                         </div>
-                        <button className="p-3 bg-white/5 rounded-full hover:bg-white/10 transition-colors text-white/50 hover:text-white" title="Share (Coming Soon)">
+                        <button
+                            onClick={handleShare}
+                            className="p-3 bg-white/5 rounded-full hover:bg-white/10 transition-colors text-white/50 hover:text-white"
+                            title="Share Article"
+                        >
                             <Share2 size={20} />
                         </button>
                     </div>
