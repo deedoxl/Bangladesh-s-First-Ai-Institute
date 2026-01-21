@@ -11,7 +11,7 @@ const navLinks = [
     { name: 'Programs', path: '/#programs' },
     { name: 'Our Mission', path: '/mission' },
     { name: 'AI Tools', path: '/ai-tools' },
-    { name: 'Testimonials', path: '/#testimonials' },
+    { name: 'AI Newsroom', path: '/news' },
 ];
 
 const Header = () => {
@@ -62,14 +62,11 @@ const Header = () => {
             }
             // If we are NOT on home page, let Link handle navigation to '/'
         } else if (path === '/') {
-            e.preventDefault();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            if (location.pathname !== '/') {
-                // Force navigation if strict routing is needed, but window.scrollTo is usually enough if Link to="/" is clicked.
-                // Actually for a Link, we should let it navigate if path changes. 
-                // But since we are intercepting onClick, let's allow navigation manually if needed.
-                // The Link component will handle the URL change. We just ensure scroll reset.
+            if (location.pathname === '/') {
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             }
+            // If we are NOT on home page, change nothing. Link will handle navigation to '/'
         } else if (path.startsWith('#')) {
             e.preventDefault();
             const element = document.getElementById(path.substring(1));
