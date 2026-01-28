@@ -12,7 +12,6 @@ const Home = () => {
     return (
         <div className="bg-deedox-bg-dark min-h-screen">
             <SEO
-                title="Home"
                 description="DEEDOX is Bangladesh's first AI institute, empowering the next generation with artificial intelligence education and tools."
                 keywords="AI Institute, Bangladesh AI, Artificial Intelligence Education, machine learning, tech education"
                 url="/"

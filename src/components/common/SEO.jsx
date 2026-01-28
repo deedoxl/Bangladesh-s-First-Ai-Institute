@@ -85,7 +85,7 @@ const SEO = ({ title, description, keywords, image, url, type = 'website', dateP
             {/* Standard Metadata */}
             <meta charset="UTF-8" />
             <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-            <title>{title ? `${title} | DEEDOX` : 'Bangladesh’s First AI Startup Institute | DEEDOX'}</title>
+            <title>{title ? `${title} | DEEDOX` : "DEEDOX | Bangladesh's First AI Institute"}</title>
             <meta name="description" content={description || "DEEDOX is Bangladesh’s first AI Startup Institute focused on practical AI usage, founder growth, and ecosystem building. We empower learners, creators, and startups to use AI tools effectively and build the future from Bangladesh."} />
             <meta name="keywords" content={metaKeywords} />
             <meta name="author" content={author || "DEEDOX"} />
@@ -94,7 +94,7 @@ const SEO = ({ title, description, keywords, image, url, type = 'website', dateP
 
             {/* Open Graph / Facebook */}
             {/* Open Graph / Facebook */}
-            <meta property="og:title" content={title ? `${title} | DEEDOX` : "Bangladesh’s First AI Startup Institute | DEEDOX"} />
+            <meta property="og:title" content={title ? `${title} | DEEDOX` : "DEEDOX | Bangladesh's First AI Institute"} />
             <meta property="og:description" content={description || "DEEDOX is Bangladesh’s first AI Startup Institute focused on practical AI usage, founder growth, and ecosystem building."} />
             <meta property="og:type" content={type} />
             <meta property="og:url" content={fullUrl} />
@@ -105,7 +105,7 @@ const SEO = ({ title, description, keywords, image, url, type = 'website', dateP
             {/* Twitter */}
             <meta name="twitter:card" content="summary_large_image" />
             {/* Twitter */}
-            <meta name="twitter:title" content={title ? `${title} | DEEDOX` : "Bangladesh’s First AI Startup Institute | DEEDOX"} />
+            <meta name="twitter:title" content={title ? `${title} | DEEDOX` : "DEEDOX | Bangladesh's First AI Institute"} />
             <meta name="twitter:description" content={description || "DEEDOX is Bangladesh’s first AI Startup Institute focused on practical AI usage, founder growth, and ecosystem building."} />
             <meta name="twitter:image" content={metaImage} />
 
