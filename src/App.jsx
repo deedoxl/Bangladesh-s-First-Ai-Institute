@@ -13,7 +13,11 @@ import MissionPage from './pages/MissionPage';
 import News from './pages/News';
 import NewsDetails from './pages/NewsDetails';
 import WorkshopPopup from './components/popups/WorkshopPopup';
+import OurPrograms from './components/sections/OurPrograms';
+import Testimonials from './components/sections/Testimonials';
+import UnderConstruction from './pages/UnderConstruction';
 import LoginGateway from './pages/LoginGateway';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 
 function App() {
   return (
@@ -28,6 +32,26 @@ function App() {
           <Route path="/mission" element={<MissionPage />} />
           {/* New Intermediate Login Gateway */}
           <Route path="/login" element={<LoginGateway />} />
+
+          {/* Core Platform & Programs */}
+          <Route path="/programs" element={<OurPrograms />} />
+          <Route path="/programs/*" element={<UnderConstruction />} />
+          <Route path="/register" element={<Navigate to="/student/signup" replace />} />
+
+          {/* Institute Pages */}
+          <Route path="/testimonials" element={<Testimonials />} />
+
+          {/* Blog */}
+          <Route path="/blog" element={<Navigate to="/news" replace />} />
+
+          {/* Regions */}
+          <Route path="/regions/*" element={<UnderConstruction />} />
+
+          {/* Support & Legal */}
+          <Route path="/support" element={<UnderConstruction />} />
+          <Route path="/faq" element={<UnderConstruction />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<UnderConstruction />} />
         </Route>
         <Route path="/Rasel7070AdminDeedox/*" element={<Admin />} />
         {/* Security: Redirect old /admin to Home or 404 */}

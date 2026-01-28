@@ -6,7 +6,7 @@ const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-const NEW_KEY = "YOUR_OPENROUTER_KEY_HERE";
+const NEW_KEY = "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";
 
 async function updateKey() {
     console.log("Updating API Key to:", NEW_KEY.substring(0, 15) + "...");
