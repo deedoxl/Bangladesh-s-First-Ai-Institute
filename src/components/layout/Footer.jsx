@@ -70,7 +70,7 @@ const Footer = () => {
                         <h4 className="text-white font-bold mb-4 md:mb-6 text-sm md:text-base">Quick Links</h4>
                         <ul className="space-y-3 md:space-y-4 text-xs md:text-sm text-deedox-text-secondary">
                             <li><Link to="/programs" className="hover:text-deedox-accent-primary transition-colors">Our Programs</Link></li>
-                            <li><a href="#mission" onClick={handleScroll('mission')} className="hover:text-deedox-accent-primary transition-colors">Mission</a></li>
+                            <li><Link to="/mission" className="hover:text-deedox-accent-primary transition-colors">Our Mission</Link></li>
                             <li><Link to="/ai-tools" className="hover:text-deedox-accent-primary transition-colors">Tools</Link></li>
                             <li><Link to="/student/login" className="hover:text-deedox-accent-primary transition-colors">Login</Link></li>
                         </ul>
@@ -81,9 +81,9 @@ const Footer = () => {
                         <h4 className="text-white font-bold mb-4 md:mb-6 text-sm md:text-base">Resources</h4>
                         <ul className="space-y-3 md:space-y-4 text-xs md:text-sm text-deedox-text-secondary">
                             <li><a href="#resources" onClick={handleScroll('resources')} className="hover:text-deedox-accent-primary transition-colors">Guides</a></li>
+                            <li><Link to="/news" className="hover:text-deedox-accent-primary transition-colors">AI News</Link></li>
                             <li><a href="#" className="hover:text-deedox-accent-primary transition-colors">Community</a></li>
-                            <li><a href="#" className="hover:text-deedox-accent-primary transition-colors">Events</a></li>
-                            <li><a href="#" className="hover:text-deedox-accent-primary transition-colors">Blog</a></li>
+                            <li><Link to="/support" className="hover:text-deedox-accent-primary transition-colors text-deedox-brand">Support</Link></li>
                         </ul>
                     </div>
 
@@ -91,8 +91,10 @@ const Footer = () => {
                     <div className="col-span-1">
                         <h4 className="text-white font-bold mb-4 md:mb-6 text-sm md:text-base">Contact</h4>
                         <ul className="space-y-3 md:space-y-4 text-xs md:text-sm text-deedox-text-secondary break-words">
-                            <li>{socials.contactEmail?.split('@')[0]}@</li>
+                            <li>{socials.contactEmail}</li>
                             <li>{socials.contactPhone}</li>
+                            <li><Link to="/support" className="hover:text-deedox-accent-primary transition-colors">Contact Support</Link></li>
+                            <li><Link to="/privacy-policy" className="hover:text-deedox-accent-primary transition-colors">Privacy Policy</Link></li>
                             <li className="hidden md:block">{socials.address}</li>
                         </ul>
                     </div>

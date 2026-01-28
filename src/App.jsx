@@ -18,6 +18,7 @@ import Testimonials from './components/sections/Testimonials';
 import UnderConstruction from './pages/UnderConstruction';
 import LoginGateway from './pages/LoginGateway';
 import PrivacyPolicy from './pages/PrivacyPolicy';
+import Support from './pages/Support';
 
 function App() {
   return (
@@ -48,7 +49,7 @@ function App() {
           <Route path="/regions/*" element={<UnderConstruction />} />
 
           {/* Support & Legal */}
-          <Route path="/support" element={<UnderConstruction />} />
+          <Route path="/support" element={<Support />} />
           <Route path="/faq" element={<UnderConstruction />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<UnderConstruction />} />
