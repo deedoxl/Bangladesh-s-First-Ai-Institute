@@ -9,7 +9,7 @@ const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsI
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-const newKey = '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';
+const newKey = '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';
 
 async function updateKey() {
     console.log("🔐 Updating API Key in Database...");
