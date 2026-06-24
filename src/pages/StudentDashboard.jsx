@@ -7,6 +7,7 @@ import { cn } from '../utils/cn';
 import { Link, useNavigate } from 'react-router-dom';
 import News from './News';
 import DashboardHero from '../components/student/DashboardHero'; // [NEW] Hero Slider
+import { ProgramDetailModal } from '../components/sections/OurPrograms';
 import { useData } from '../context/DataContext';
 import { supabase } from '../lib/supabaseClient';
 import { uploadToCloudinary } from '../lib/cloudinary';
@@ -32,6 +33,7 @@ const StudentDashboard = () => {
     const [communityInput, setCommunityInput] = useState('');
 
     const [dmHistory, setDmHistory] = useState({});
+    const [selectedProgram, setSelectedProgram] = useState(null);
 
 
     // --- Community Group State ---
@@ -1373,7 +1375,11 @@ const StudentDashboard = () => {
                                         </div>
                                         <h3 className="text-xl font-bold text-white mb-2 leading-tight group-hover:text-deedox-accent-primary transition-colors">{program.title}</h3>
                                         <p className="text-white/50 text-sm mb-4 line-clamp-2">{program.description}</p>
-                                        <Button variant="outline" className="w-full hover:bg-deedox-accent-primary hover:text-black border-white/10">
+                                        <Button 
+                                            variant="outline" 
+                                            className="w-full hover:bg-deedox-accent-primary hover:text-black border-white/10"
+                                            onClick={() => setSelectedProgram(program)}
+                                        >
                                             View Details
                                         </Button>
                                     </div>
@@ -2217,6 +2223,13 @@ const StudentDashboard = () => {
                 )}
             </AnimatePresence >
 
+            {selectedProgram && (
+                <ProgramDetailModal 
+                    program={selectedProgram} 
+                    onClose={() => setSelectedProgram(null)} 
+                    isDashboard={true} 
+                />
+            )}
         </div >
     );
 };

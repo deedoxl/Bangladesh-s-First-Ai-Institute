@@ -348,7 +348,25 @@ export const DataProvider = ({ children }) => {
                     instructor: c.instructor_name || 'Deedox',
                     status: c.status || 'Active',
                     link: c.link || '#',
-                    is_published: c.is_published
+                    is_published: c.is_published,
+                    video_url: c.video_url || '',
+                    popup_headline: c.popup_headline || '',
+                    popup_subheadline: c.popup_subheadline || '',
+                    popup_badge_left: c.popup_badge_left || 'LIVE SESSION',
+                    popup_badge_right: c.popup_badge_right || 'Only 10 seats left!',
+                    popup_date: c.popup_date || '',
+                    popup_time: c.popup_time || '',
+                    popup_enrolled: c.popup_enrolled || '',
+                    popup_feature_1: c.popup_feature_1 || '',
+                    popup_feature_2: c.popup_feature_2 || '',
+                    popup_feature_3: c.popup_feature_3 || '',
+                    popup_feature_4: c.popup_feature_4 || '',
+                    popup_btn_primary_text: c.popup_btn_primary_text || 'Reserve My Seat Now',
+                    popup_btn_primary_link: c.popup_btn_primary_link || '',
+                    popup_btn_secondary_text: c.popup_btn_secondary_text || 'Maybe Later',
+                    popup_btn_secondary_link: c.popup_btn_secondary_link || '',
+                    popup_footer_text: c.popup_footer_text || 'Created by DEEDOX',
+                    playlist: c.playlist || []
                 })));
             }
 
@@ -545,7 +563,25 @@ export const DataProvider = ({ children }) => {
                     instructor: c.instructor_name,
                     status: c.status,
                     link: c.link,
-                    is_published: c.is_published
+                    is_published: c.is_published,
+                    video_url: c.video_url || '',
+                    popup_headline: c.popup_headline || '',
+                    popup_subheadline: c.popup_subheadline || '',
+                    popup_badge_left: c.popup_badge_left || 'LIVE SESSION',
+                    popup_badge_right: c.popup_badge_right || 'Only 10 seats left!',
+                    popup_date: c.popup_date || '',
+                    popup_time: c.popup_time || '',
+                    popup_enrolled: c.popup_enrolled || '',
+                    popup_feature_1: c.popup_feature_1 || '',
+                    popup_feature_2: c.popup_feature_2 || '',
+                    popup_feature_3: c.popup_feature_3 || '',
+                    popup_feature_4: c.popup_feature_4 || '',
+                    popup_btn_primary_text: c.popup_btn_primary_text || 'Reserve My Seat Now',
+                    popup_btn_primary_link: c.popup_btn_primary_link || '',
+                    popup_btn_secondary_text: c.popup_btn_secondary_text || 'Maybe Later',
+                    popup_btn_secondary_link: c.popup_btn_secondary_link || '',
+                    popup_footer_text: c.popup_footer_text || 'Created by DEEDOX',
+                    playlist: c.playlist || []
                 })), ...prev]);
             }
         },
@@ -562,6 +598,26 @@ export const DataProvider = ({ children }) => {
             if (updates.duration !== undefined) dbUpdates.duration = updates.duration;
             if (updates.status !== undefined) dbUpdates.status = updates.status;
             if (updates.link !== undefined) dbUpdates.link = updates.link;
+            
+            // New popup and video fields
+            if (updates.video_url !== undefined) dbUpdates.video_url = updates.video_url;
+            if (updates.popup_headline !== undefined) dbUpdates.popup_headline = updates.popup_headline;
+            if (updates.popup_subheadline !== undefined) dbUpdates.popup_subheadline = updates.popup_subheadline;
+            if (updates.popup_badge_left !== undefined) dbUpdates.popup_badge_left = updates.popup_badge_left;
+            if (updates.popup_badge_right !== undefined) dbUpdates.popup_badge_right = updates.popup_badge_right;
+            if (updates.popup_date !== undefined) dbUpdates.popup_date = updates.popup_date;
+            if (updates.popup_time !== undefined) dbUpdates.popup_time = updates.popup_time;
+            if (updates.popup_enrolled !== undefined) dbUpdates.popup_enrolled = updates.popup_enrolled;
+            if (updates.popup_feature_1 !== undefined) dbUpdates.popup_feature_1 = updates.popup_feature_1;
+            if (updates.popup_feature_2 !== undefined) dbUpdates.popup_feature_2 = updates.popup_feature_2;
+            if (updates.popup_feature_3 !== undefined) dbUpdates.popup_feature_3 = updates.popup_feature_3;
+            if (updates.popup_feature_4 !== undefined) dbUpdates.popup_feature_4 = updates.popup_feature_4;
+            if (updates.popup_btn_primary_text !== undefined) dbUpdates.popup_btn_primary_text = updates.popup_btn_primary_text;
+            if (updates.popup_btn_primary_link !== undefined) dbUpdates.popup_btn_primary_link = updates.popup_btn_primary_link;
+            if (updates.popup_btn_secondary_text !== undefined) dbUpdates.popup_btn_secondary_text = updates.popup_btn_secondary_text;
+            if (updates.popup_btn_secondary_link !== undefined) dbUpdates.popup_btn_secondary_link = updates.popup_btn_secondary_link;
+            if (updates.popup_footer_text !== undefined) dbUpdates.popup_footer_text = updates.popup_footer_text;
+            if (updates.playlist !== undefined) dbUpdates.playlist = updates.playlist;
 
             const { error } = await supabase.from('courses').update(dbUpdates).eq('id', id);
             if (error) {

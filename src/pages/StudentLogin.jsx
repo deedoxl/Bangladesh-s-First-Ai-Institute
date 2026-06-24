@@ -38,7 +38,7 @@ const StudentLogin = () => {
 
     // STEP 1: SEND OTP (EMAIL)
     const handleSendOtp = async (e) => {
-        e.preventDefault();
+        if (e && e.preventDefault) e.preventDefault();
         setLoading(true);
         setMessage(null);
 
@@ -46,23 +46,61 @@ const StudentLogin = () => {
             const cleanEmail = email.trim().toLowerCase();
             if (!cleanEmail) throw new Error("Email is required");
 
-            // Use ONLY this (Standard Supabase OTP Send)
+            if (!isLogin && !name.trim()) {
+                throw new Error("Full Name is required for signup.");
+            }
+
+            // For SIGNUP: first try signUp to create the user, then send OTP
+            if (!isLogin) {
+                // Check if user already exists by trying signInWithOtp first
+                // Use signUp to create user without email confirmation
+                const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+                    email: cleanEmail,
+                    password: Math.random().toString(36).slice(-12) + 'Aa1!', // random strong password (user won't use it - OTP only)
+                    options: {
+                        data: { full_name: name.trim() },
+                        emailRedirectTo: undefined,
+                    }
+                });
+
+                // If user already exists, signUp returns a user with identities=[]
+                const isExistingUser = signUpData?.user && signUpData.user.identities && signUpData.user.identities.length === 0;
+
+                if (signUpError && !signUpError.message.includes('already registered')) {
+                    console.warn("SignUp note:", signUpError.message);
+                }
+            }
+
+            // Now send OTP magic link for both login and signup
             const { error } = await supabase.auth.signInWithOtp({
                 email: cleanEmail,
                 options: {
-                    shouldCreateUser: true, // As requested: ALWAYS try to create/find user
-                    data: (!isLogin && name) ? { full_name: name } : undefined
+                    shouldCreateUser: !isLogin, // create user if signing up
+                    data: (!isLogin && name) ? { full_name: name.trim() } : undefined,
                 }
             });
 
-            if (error) throw error;
+            if (error) {
+                // Handle specific email sending errors
+                if (
+                    error.message.toLowerCase().includes('sending confirmation email') ||
+                    error.message.toLowerCase().includes('error sending') ||
+                    error.message.toLowerCase().includes('email rate limit') ||
+                    error.message.toLowerCase().includes('smtp')
+                ) {
+                    throw new Error(
+                        "Email delivery is temporarily unavailable. Please wait a few minutes and try again, or contact support at support@deedox.site"
+                    );
+                }
+                throw error;
+            }
 
             setStep('otp');
-            setMessage("✅ OTP Code sent! Please check your email.");
+            setMessage("✅ Verification code sent! Please check your email inbox and spam folder.");
 
         } catch (error) {
             console.error("Send OTP Error:", error);
-            setMessage(error.message || "Failed to send OTP.");
+            setMessage(error.message || "Failed to send code. Please try again.");
         } finally {
             setLoading(false);
         }

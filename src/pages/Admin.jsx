@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { uploadToCloudinary } from '../lib/uploadImage';
 import Button from '../components/ui/Button';
@@ -6,6 +6,84 @@ import { Lock, Key, Save, Shield, LayoutDashboard, Users, FileText, Link as Link
 import { handleImageUpload, InputGroup, TextAreaGroup, ImageUploader } from '../components/admin/AdminHelpers';
 import { supabase } from '../lib/supabaseClient';
 import { Helmet } from 'react-helmet-async';
+
+const ProgramPlaylistManager = ({ program, onSave }) => {
+    const [localPlaylist, setLocalPlaylist] = useState(program.playlist || []);
+
+    // Sync from database if program changes externally
+    useEffect(() => {
+        setLocalPlaylist(program.playlist || []);
+    }, [program.id, program.playlist]);
+
+    const handleSave = () => {
+        onSave(localPlaylist);
+    };
+
+    const handleAdd = () => {
+        const updated = [...localPlaylist, { title: `Part ${localPlaylist.length + 1}`, videoUrl: '' }];
+        setLocalPlaylist(updated);
+    };
+
+    const handleRemove = (idx) => {
+        const updated = localPlaylist.filter((_, i) => i !== idx);
+        setLocalPlaylist(updated);
+    };
+
+    const handleChange = (idx, field, value) => {
+        const updated = [...localPlaylist];
+        updated[idx] = { ...updated[idx], [field]: value };
+        setLocalPlaylist(updated);
+    };
+
+    return (
+        <div className="bg-black/30 p-4 rounded-xl border border-white/5 space-y-4">
+            {localPlaylist.map((lesson, idx) => (
+                <div key={idx} className="flex gap-4 items-center bg-black/40 p-3 rounded-lg border border-white/5 relative group/lesson">
+                    <span className="text-xs font-mono text-white/30">Part {idx + 1}</span>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 flex-grow">
+                        <InputGroup 
+                            label="Lesson Title" 
+                            value={lesson.title || ''} 
+                            onChange={v => handleChange(idx, 'title', v)} 
+                        />
+                        <InputGroup 
+                            label="YouTube Video URL / ID" 
+                            value={lesson.videoUrl || ''} 
+                            onChange={v => handleChange(idx, 'videoUrl', v)} 
+                        />
+                    </div>
+                    <button 
+                        type="button"
+                        onClick={() => handleRemove(idx)}
+                        className="text-red-500 hover:text-red-400 p-2 mt-6"
+                        title="Remove Lesson"
+                    >
+                        <Trash size={18} />
+                    </button>
+                </div>
+            ))}
+            
+            <div className="flex gap-3 mt-4">
+                <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="flex-grow text-xs py-2.5 border-dashed border-white/10 hover:border-deedox-accent-primary/50 text-white/60 hover:text-white"
+                    onClick={handleAdd}
+                >
+                    + Add Lesson / Part
+                </Button>
+                <Button 
+                    type="button" 
+                    variant="primary" 
+                    className="text-xs py-2.5 px-6 bg-[#70E000] text-black hover:bg-[#82F000]"
+                    onClick={handleSave}
+                >
+                    Save Playlist
+                </Button>
+            </div>
+        </div>
+    );
+};
 
 const Admin = () => {
     const {
@@ -2202,6 +2280,48 @@ const Admin = () => {
                                                     <InputGroup label="Status Badge" value={img.status} onChange={v => programs.update(img.id, { status: v })} />
                                                     <ImageUploader label="Course Image" value={img.image} onChange={v => programs.update(img.id, { image: v })} />
                                                     <InputGroup label="Redirect Link URL" value={img.link} onChange={v => programs.update(img.id, { link: v })} />
+                                                    
+                                                    {/* Popup & Video Config Sub-section */}
+                                                    <div className="col-span-1 md:col-span-2 border-t border-white/10 pt-6 mt-4">
+                                                        <h4 className="text-sm font-bold text-[#70E000] mb-4">Popup Modal & Video Settings</h4>
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-black/30 p-4 rounded-xl border border-white/5">
+                                                            <InputGroup label="YouTube Video Link" value={img.video_url || ''} onChange={v => programs.update(img.id, { video_url: v })} />
+                                                            <InputGroup label="Popup Headline" value={img.popup_headline || ''} onChange={v => programs.update(img.id, { popup_headline: v })} />
+                                                            
+                                                            <InputGroup label="Popup Subheadline / Description" value={img.popup_subheadline || ''} onChange={v => programs.update(img.id, { popup_subheadline: v })} />
+                                                            <InputGroup label="Footer Notice Text" value={img.popup_footer_text || ''} onChange={v => programs.update(img.id, { popup_footer_text: v })} />
+                                                            
+                                                            <InputGroup label="Badge Left (e.g. LIVE SESSION)" value={img.popup_badge_left || ''} onChange={v => programs.update(img.id, { popup_badge_left: v })} />
+                                                            <InputGroup label="Badge Right (e.g. Only 10 seats left!)" value={img.popup_badge_right || ''} onChange={v => programs.update(img.id, { popup_badge_right: v })} />
+                                                            
+                                                            <InputGroup label="Info Card 1 (Date)" value={img.popup_date || ''} onChange={v => programs.update(img.id, { popup_date: v })} />
+                                                            <InputGroup label="Info Card 2 (Time)" value={img.popup_time || ''} onChange={v => programs.update(img.id, { popup_time: v })} />
+                                                            
+                                                            <InputGroup label="Info Card 3 (Enrolled Count)" value={img.popup_enrolled || ''} onChange={v => programs.update(img.id, { popup_enrolled: v })} />
+                                                            <InputGroup label="Feature 1" value={img.popup_feature_1 || ''} onChange={v => programs.update(img.id, { popup_feature_1: v })} />
+                                                            
+                                                            <InputGroup label="Feature 2" value={img.popup_feature_2 || ''} onChange={v => programs.update(img.id, { popup_feature_2: v })} />
+                                                            <InputGroup label="Feature 3" value={img.popup_feature_3 || ''} onChange={v => programs.update(img.id, { popup_feature_3: v })} />
+                                                            
+                                                            <InputGroup label="Feature 4" value={img.popup_feature_4 || ''} onChange={v => programs.update(img.id, { popup_feature_4: v })} />
+                                                            <InputGroup label="Primary Button Text" value={img.popup_btn_primary_text || ''} onChange={v => programs.update(img.id, { popup_btn_primary_text: v })} />
+                                                            
+                                                            <InputGroup label="Primary Button Link (Leaves default to redirect link if empty)" value={img.popup_btn_primary_link || ''} onChange={v => programs.update(img.id, { popup_btn_primary_link: v })} />
+                                                            <InputGroup label="Secondary Button Text" value={img.popup_btn_secondary_text || ''} onChange={v => programs.update(img.id, { popup_btn_secondary_text: v })} />
+                                                            
+                                                            <InputGroup label="Secondary Button Link (Closes popup by default if empty)" value={img.popup_btn_secondary_link || ''} onChange={v => programs.update(img.id, { popup_btn_secondary_link: v })} />
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Playlist Editor Sub-section */}
+                                                    <div className="col-span-1 md:col-span-2 border-t border-white/10 pt-6 mt-4">
+                                                        <h4 className="text-sm font-bold text-[#70E000] mb-2">Course Playlist / Parts (Lessons)</h4>
+                                                        <p className="text-xs text-white/40 mb-4">Add, edit, or delete playlist lessons. Note: The first lesson (Part 1) will be unlocked for visitors, while subsequent lessons will show a Lock icon and prompt student login.</p>
+                                                        <ProgramPlaylistManager 
+                                                            program={img} 
+                                                            onSave={playlist => programs.update(img.id, { playlist })} 
+                                                        />
+                                                    </div>
                                                 </div>
                                             </div>
                                         ))}
