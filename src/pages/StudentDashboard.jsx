@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../components/ui/Button';
-import { Zap, HelpCircle, Briefcase, MessageCircle, Send, Plus, Users, Hash, ImageIcon, Heart, MessageSquare, Loader2, X, Upload, MoreHorizontal, FileText, Check, LayoutDashboard, LogOut, Code, Bot, Bell, Search, Edit, CheckCircle, Compass, Trash2, Menu, Newspaper, ChevronRight, Database, Settings, Globe, Cpu } from 'lucide-react';
+import { Zap, HelpCircle, Briefcase, MessageCircle, Send, Plus, Users, Hash, ImageIcon, Heart, MessageSquare, Loader2, X, Upload, MoreHorizontal, FileText, Check, LayoutDashboard, LogOut, Code, Bot, Bell, Search, Edit, CheckCircle, Compass, Trash2, Menu, Newspaper, ChevronRight, Database, Settings, Globe, Cpu, Shield, AlertTriangle } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { Link, useNavigate } from 'react-router-dom';
 import News from './News';
@@ -23,10 +23,23 @@ const StudentDashboard = () => {
     const messagesEndRef = useRef(null); // [NEW] Ref for Auto-Scrolling
 
     // --- Supabase State ---
-    // const [currentUser, setCurrentUser] = useState(null); // REMOVED: Use Global
     const [userProfile, setUserProfile] = useState(null);
     const [loadingProfile, setLoadingProfile] = useState(true);
     const [partners, setPartners] = useState([]);
+
+    // Derived Admin Check for Moderation Privileges
+    const isAdmin = userProfile?.is_admin === true ||
+                    userProfile?.is_dashboard_admin === true ||
+                    userProfile?.role === 'admin' ||
+                    userProfile?.role === 'dashboard_admin' ||
+                    userProfile?.role === 'Dashboard Admin' ||
+                    userProfile?.membership_type === 'admin' ||
+                    userProfile?.membership_type === 'dashboard_admin' ||
+                    currentUser?.is_admin === true ||
+                    currentUser?.is_dashboard_admin === true ||
+                    currentUser?.role === 'admin' ||
+                    currentUser?.role === 'dashboard_admin' ||
+                    currentUser?.role === 'Dashboard Admin';
 
     // --- Chat State ---
     const [communityMessages, setCommunityMessages] = useState([]);
@@ -34,7 +47,6 @@ const StudentDashboard = () => {
 
     const [dmHistory, setDmHistory] = useState({});
     const [selectedProgram, setSelectedProgram] = useState(null);
-
 
     // --- Community Group State ---
     const [communities, setCommunities] = useState([]); // List of communities
@@ -47,7 +59,7 @@ const StudentDashboard = () => {
     const [isMobileNavOpen, setIsMobileNavOpen] = useState(false); // [NEW] Global Mobile Navigation Toggle
 
     // --- Navigation Config (Shared) ---
-    const navItems = [
+    const baseNavItems = [
         { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', accent: 'text-[#a3e635]' },
         { id: 'community', icon: Users, label: 'Community' },
         { id: 'social', icon: Hash, label: 'Student Social Feed' },
@@ -58,6 +70,10 @@ const StudentDashboard = () => {
         { id: 'programs', icon: Compass, label: 'Explore AI Programs' },
         { id: 'settings', icon: Settings, label: 'Settings', highlight: true }
     ];
+
+    const navItems = isAdmin 
+        ? [...baseNavItems.slice(0, 8), { id: 'admin_panel', icon: Shield, label: 'Admin Panel', highlight: true, isAdminLink: true }, baseNavItems[8]]
+        : baseNavItems;
 
     // Scroll Logic - Container Ref (More Robust)
     const communityChatContainerRef = useRef(null);
@@ -153,6 +169,45 @@ const StudentDashboard = () => {
         };
         fetchProfileData();
     }, [currentUser, loadingAuth, navigate]);
+
+    // --- Realtime User Sync (Ban & Role Updates) ---
+    useEffect(() => {
+        if (!currentUser?.id || !supabase) return;
+
+        const userSyncChannel = supabase.channel(`user_sync_channel_${currentUser.id}`)
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'users',
+                filter: `id=eq.${currentUser.id}`
+            }, (payload) => {
+                if (payload.new) {
+                    console.log("⚡ Realtime user update received on StudentDashboard:", payload.new);
+                    setUserProfile(prev => {
+                        const updated = { ...(prev || {}), ...payload.new };
+                        localStorage.setItem(`profile_cache_${currentUser.id}`, JSON.stringify(updated));
+                        return updated;
+                    });
+                }
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(userSyncChannel);
+        };
+    }, [currentUser?.id]);
+
+    // --- Prevent Body Scroll when Mobile Nav is Open ---
+    useEffect(() => {
+        if (isMobileNavOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [isMobileNavOpen]);
 
     // --- Fetch Communities & Realtime Presence ---
     useEffect(() => {
@@ -965,6 +1020,35 @@ const StudentDashboard = () => {
             isMe: true
         }]).filter(p => !searchTerm || p.name?.toLowerCase().includes(searchTerm.toLowerCase())); // Re-filter to include Me if searches match
 
+    // --- Banned Account Check ---
+    if (userProfile?.is_banned || userProfile?.banned) {
+        return (
+            <div className="min-h-screen bg-black flex items-center justify-center p-6 text-center z-[9999] relative">
+                <div className="max-w-md w-full bg-neutral-900/90 border border-red-500/30 rounded-3xl p-8 backdrop-blur-2xl shadow-[0_0_50px_rgba(239,68,68,0.2)] flex flex-col items-center">
+                    <div className="w-20 h-20 bg-red-500/10 border border-red-500/30 rounded-full flex items-center justify-center text-red-500 mb-6 animate-pulse">
+                        <AlertTriangle size={40} />
+                    </div>
+                    <h1 className="text-2xl font-black text-white mb-2">Account Suspended</h1>
+                    <p className="text-white/60 text-sm mb-6 leading-relaxed">
+                        Your account has been suspended by an administrator due to a community policy violation.
+                    </p>
+                    <div className="w-full bg-red-500/10 border border-red-500/20 rounded-xl p-4 mb-6 text-xs text-red-300 font-mono">
+                        Status: BANNED | Access Revoked
+                    </div>
+                    <button
+                        onClick={async () => {
+                            await supabase.auth.signOut();
+                            navigate('/login');
+                        }}
+                        className="w-full py-3 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 transition-all shadow-lg shadow-red-500/20"
+                    >
+                        Sign Out
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className={`min-h-screen bg-transparent flex text-white font-sans overflow-hidden ${settings.neonEffectEnabled ? 'neon-dashboard-active' : ''}`}>
             <SEO
@@ -1049,8 +1133,8 @@ const StudentDashboard = () => {
                             initial={{ x: '-100%' }}
                             animate={{ x: 0 }}
                             exit={{ x: '-100%' }}
-                            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-                            className="fixed inset-y-0 left-0 w-[280px] bg-black/30 backdrop-blur-2xl border-r border-white/10 z-[350] overflow-y-auto lg:hidden flex flex-col shadow-2xl"
+                            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                            className="fixed inset-y-0 left-0 w-[280px] bg-[#0a0a0a]/95 backdrop-blur-xl border-r border-white/10 z-[350] overflow-y-auto lg:hidden flex flex-col shadow-2xl transform-gpu will-change-transform"
                         >
                             {/* Mobile Logo */}
                             <div className="p-6 border-b border-white/5 flex justify-between items-center">
@@ -1160,7 +1244,11 @@ const StudentDashboard = () => {
                             <p className="text-[11px] text-[#9ca3af] truncate mb-1">
                                 {userProfile?.email || 'user@example.com'}
                             </p>
-                            {userProfile?.membership_type === 'pro' ? (
+                            {isAdmin ? (
+                                <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-[#70E000]/20 text-[#70E000] border border-[#70E000]/40 shadow-[0_0_10px_rgba(112,224,0,0.3)]">
+                                    🛡️ Dashboard Admin
+                                </span>
+                            ) : userProfile?.membership_type === 'pro' ? (
                                 <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-[#a3e635]/10 text-[#a3e635] border border-[#a3e635]/20">
                                     Pro Member
                                 </span>
@@ -1180,7 +1268,9 @@ const StudentDashboard = () => {
                         <button
                             key={item.id}
                             onClick={() => {
-                                if (item.id === 'settings') {
+                                if (item.isAdminLink || item.id === 'admin_panel') {
+                                    navigate('/admin');
+                                } else if (item.id === 'settings') {
                                     setTempProfile(userProfile);
                                     setIsEditingProfile(true);
                                 } else {
@@ -1259,13 +1349,23 @@ const StudentDashboard = () => {
                         </Link>
                     </div>
 
-                    <div className="hidden sm:block">
-                        <div className="flex items-center gap-2 cursor-pointer" onClick={() => { setTempProfile(userProfile); setIsEditingProfile(true); }}>
-                            <p className="text-white text-sm font-bold leading-none">{userProfile.name}</p>
-                            <Edit size={12} className="text-white/20 group-hover:text-white/80" />
+                    <div className="hidden sm:flex items-center gap-3">
+                        {isAdmin && (
+                            <button
+                                onClick={() => navigate('/admin')}
+                                className="px-3 py-1.5 bg-[#70E000]/20 text-[#70E000] border border-[#70E000]/40 rounded-xl text-xs font-bold flex items-center gap-1.5 hover:bg-[#70E000]/30 transition-all shadow-[0_0_15px_rgba(112,224,0,0.2)]"
+                            >
+                                <Shield size={14} /> Admin Panel
+                            </button>
+                        )}
+                        <div className="cursor-pointer" onClick={() => { setTempProfile(userProfile); setIsEditingProfile(true); }}>
+                            <div className="flex items-center gap-2">
+                                <p className="text-white text-sm font-bold leading-none">{userProfile?.name}</p>
+                                <Edit size={12} className="text-white/20 group-hover:text-white/80" />
+                            </div>
+                            <p className="text-[10px] text-deedox-accent-primary uppercase font-bold tracking-wider mt-0.5">{userProfile?.status}</p>
+                            <p className="text-[10px] text-white/30 font-mono mt-0.5">ID: {userProfile?.student_id || 'PENDING'}</p>
                         </div>
-                        <p className="text-[10px] text-deedox-accent-primary uppercase font-bold tracking-wider mt-0.5">{userProfile.status}</p>
-                        <p className="text-[10px] text-white/30 font-mono mt-0.5">ID: {userProfile.student_id || 'PENDING'}</p>
                     </div>
                 </header>
 
@@ -1795,13 +1895,13 @@ const StudentDashboard = () => {
                                                 <p className="relative z-10 font-medium">{msg.text}</p>
                                                 <span className={"text-[9px] block mt-1 font-mono text-right relative z-10 opacity-60 " + (msg.isMe ? 'text-black' : 'text-white')}>{msg.role}</span>
                                             </div>
-                                            {msg.isMe && (
+                                            {(msg.isMe || isAdmin) && (
                                                 <button
                                                     onClick={() => handleDeleteCommunityMessage(msg.id)}
                                                     className="opacity-0 group-hover:opacity-100 transition-opacity text-white/20 hover:text-red-400 p-2"
-                                                    title="Delete Message"
+                                                    title={isAdmin && !msg.isMe ? "Delete Message (Admin)" : "Delete Message"}
                                                 >
-                                                    <Trash2 size={14} />
+                                                    <Trash2 size={14} className={isAdmin && !msg.isMe ? "text-red-400" : ""} />
                                                 </button>
                                             )}
                                         </div>
@@ -1910,6 +2010,19 @@ const StudentDashboard = () => {
                                 </div>
                             </div>
                         </div>
+                    )
+                }
+
+                {/* --- STUDENT SOCIAL FEED TAB --- */}
+                {
+                    activeTab === 'social' && (
+                        <SocialFeed
+                            currentUser={currentUser}
+                            userProfile={userProfile}
+                            isAdmin={isAdmin}
+                            setActiveTab={setActiveTab}
+                            setSearchTerm={setSearchTerm}
+                        />
                     )
                 }
 
@@ -2235,7 +2348,7 @@ const StudentDashboard = () => {
 };
 
 // --- Social Feed Component ---
-const SocialFeed = ({ currentUser, userProfile, setActiveTab, setSearchTerm }) => {
+const SocialFeed = ({ currentUser, userProfile, isAdmin, setActiveTab, setSearchTerm }) => {
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [newPostContent, setNewPostContent] = useState('');
@@ -2268,7 +2381,7 @@ const SocialFeed = ({ currentUser, userProfile, setActiveTab, setSearchTerm }) =
     const fetchPosts = async () => {
         const { data, error } = await supabase
             .from('posts')
-            .select('*, user:users(name, avatar_url, role), post_likes(user_id), post_comments(id, content, created_at, user:users(name, avatar_url))')
+            .select('*, user:users(name, avatar_url, role), post_likes(user_id), post_comments(id, user_id, content, created_at, user:users(name, avatar_url))')
             .order('created_at', { ascending: false });
 
         if (data) {
@@ -2359,6 +2472,7 @@ const SocialFeed = ({ currentUser, userProfile, setActiveTab, setSearchTerm }) =
     };
 
     const handleDeletePost = async (postId) => {
+        if (!confirm("Delete this post permanently?")) return;
         // 1. Optimistic Update (Immediate Removal)
         setPosts(prevPosts => prevPosts.filter(p => p.id !== postId));
 
@@ -2368,8 +2482,30 @@ const SocialFeed = ({ currentUser, userProfile, setActiveTab, setSearchTerm }) =
             if (error) throw error;
         } catch (error) {
             console.error("Delete failed:", error);
-            alert("Failed to delete post.");
+            alert("Failed to delete post: " + error.message);
             fetchPosts(); // Revert
+        }
+    };
+
+    const handleDeleteComment = async (commentId, postId) => {
+        if (!confirm("Delete this comment permanently?")) return;
+        setPosts(prevPosts => prevPosts.map(p => {
+            if (p.id === postId) {
+                return {
+                    ...p,
+                    comments: (p.comments || []).filter(c => c.id !== commentId)
+                };
+            }
+            return p;
+        }));
+
+        try {
+            const { error } = await supabase.from('post_comments').delete().eq('id', commentId);
+            if (error) throw error;
+        } catch (error) {
+            console.error("Comment delete failed:", error);
+            alert("Failed to delete comment: " + error.message);
+            fetchPosts();
         }
     };
 
@@ -2487,8 +2623,10 @@ const SocialFeed = ({ currentUser, userProfile, setActiveTab, setSearchTerm }) =
                             key={post.id}
                             post={post}
                             currentUser={currentUser}
+                            isAdmin={isAdmin}
                             onLike={() => handleLike(post.id, post.isLiked)}
                             onDelete={() => handleDeletePost(post.id)}
+                            onDeleteComment={(commentId) => handleDeleteComment(commentId, post.id)}
                             onProfileClick={() => handleProfileClick(post.user?.name)}
                         />
                     ))}
@@ -2506,7 +2644,7 @@ const SocialFeed = ({ currentUser, userProfile, setActiveTab, setSearchTerm }) =
     );
 };
 
-const FeedItem = ({ post, currentUser, onLike, onDelete, onProfileClick }) => {
+const FeedItem = ({ post, currentUser, isAdmin, onLike, onDelete, onDeleteComment, onProfileClick }) => {
     const [showComments, setShowComments] = useState(false);
     const [commentText, setCommentText] = useState('');
     const [deleteConfirm, setDeleteConfirm] = useState(false); // 2-Step Delete State
@@ -2529,22 +2667,22 @@ const FeedItem = ({ post, currentUser, onLike, onDelete, onProfileClick }) => {
                             <h3 className="font-bold text-white text-sm cursor-pointer hover:underline" onClick={onProfileClick}>{post.user?.name || 'Unknown User'}</h3>
                             <span className="text-xs text-white/30">{new Date(post.created_at).toLocaleDateString()}</span>
                         </div>
-                        {post.user_id === currentUser.id && (
+                        {(post.user_id === currentUser.id || isAdmin) && (
                             <div className="relative">
                                 {deleteConfirm ? (
                                     <button
                                         onClick={onDelete}
-                                        className="bg-red-500 text-white p-1 rounded hover:bg-red-600 transition-colors animate-pulse"
+                                        className="bg-red-500 text-white p-1 rounded hover:bg-red-600 transition-colors animate-pulse text-xs flex items-center gap-1 font-bold px-2"
                                         title="Confirm Delete"
                                         onMouseLeave={() => setDeleteConfirm(false)}
                                     >
-                                        <CheckCircle size={14} />
+                                        <CheckCircle size={14} /> Confirm
                                     </button>
                                 ) : (
                                     <button
                                         onClick={() => setDeleteConfirm(true)}
-                                        className="text-white/20 hover:text-red-500 transition-colors"
-                                        title="Delete Post"
+                                        className={isAdmin && post.user_id !== currentUser.id ? "text-red-400 hover:text-red-300 transition-colors" : "text-white/20 hover:text-red-500 transition-colors"}
+                                        title={isAdmin && post.user_id !== currentUser.id ? "Delete Post (Admin)" : "Delete Post"}
                                     >
                                         <Trash2 size={14} />
                                     </button>
@@ -2576,14 +2714,25 @@ const FeedItem = ({ post, currentUser, onLike, onDelete, onProfileClick }) => {
                 <div className="bg-black/20 p-4 border-t border-white/5">
                     <div className="space-y-4 mb-4">
                         {post.comments?.map(c => (
-                            <div key={c.id} className="flex gap-3">
-                                <div className="w-6 h-6 rounded-full bg-gray-700 shrink-0 overflow-hidden">
-                                    {c.user?.avatar_url && <img src={c.user.avatar_url} className="w-full h-full object-cover" />}
+                            <div key={c.id} className="flex items-start justify-between gap-3 group/comment">
+                                <div className="flex gap-3">
+                                    <div className="w-6 h-6 rounded-full bg-gray-700 shrink-0 overflow-hidden">
+                                        {c.user?.avatar_url && <img src={c.user.avatar_url} className="w-full h-full object-cover" />}
+                                    </div>
+                                    <div className="bg-white/5 rounded-2xl rounded-tl-none p-3 text-sm">
+                                        <span className="font-bold text-white block text-xs mb-1">{c.user?.name || 'User'}</span>
+                                        <span className="text-white/80">{c.content}</span>
+                                    </div>
                                 </div>
-                                <div className="bg-white/5 rounded-2xl rounded-tl-none p-3 text-sm">
-                                    <span className="font-bold text-white block text-xs mb-1">{c.user?.name}</span>
-                                    <span className="text-white/80">{c.content}</span>
-                                </div>
+                                {(c.user_id === currentUser.id || post.user_id === currentUser.id || isAdmin) && (
+                                    <button
+                                        onClick={() => onDeleteComment && onDeleteComment(c.id)}
+                                        className="opacity-0 group-hover/comment:opacity-100 text-white/30 hover:text-red-400 p-1 transition-all"
+                                        title="Delete Comment"
+                                    >
+                                        <Trash2 size={12} />
+                                    </button>
+                                )}
                             </div>
                         ))}
                     </div>

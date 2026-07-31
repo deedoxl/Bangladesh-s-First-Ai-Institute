@@ -26,6 +26,17 @@ const Header = () => {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
+    useEffect(() => {
+        if (isOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [isOpen]);
+
     useEffect(() => setIsOpen(false), [location.pathname]);
 
     // Check for hash on load/location change to scroll
@@ -175,43 +186,34 @@ const Header = () => {
                 </button>
             </div>
 
-            {/* --- Mobile Menu (Full Screen - Liquid Glass) --- */}
+            {/* --- Mobile Menu (Full Screen - Liquid Glass Background) --- */}
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
-                        initial={{ opacity: 0, clipPath: "circle(0% at 100% 0%)" }}
-                        animate={{ opacity: 1, clipPath: "circle(150% at 100% 0%)" }}
-                        exit={{ opacity: 0, clipPath: "circle(0% at 100% 0%)" }}
-                        transition={{ type: "spring", stiffness: 100, damping: 20 }}
-                        className="fixed inset-0 top-0 bg-black/90 z-[100] flex flex-col items-center justify-center gap-8 backdrop-blur-3xl h-[100dvh] overflow-y-auto"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
+                        className="fixed inset-0 top-0 bg-black/60 backdrop-blur-2xl border border-white/10 z-[100] flex flex-col items-center justify-center gap-8 h-[100dvh] overflow-y-auto transform-gpu"
                     >
-                        {navLinks.map((link, i) => {
+                        {navLinks.map((link) => {
                             const displayName = link.name === 'AI Tools' ? (settings.aiPageTitle || 'AI Tools') : link.name;
                             return (
-                                <motion.div
-                                    key={link.name}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.1 + i * 0.1 }}
-                                >
+                                <div key={link.name}>
                                     <Link
                                         to={link.path}
                                         onClick={(e) => {
                                             handleNavClick(link.path)(e);
                                             setIsOpen(false);
                                         }}
-                                        className="text-3xl font-bold text-white hover:text-[#70E000] transition-colors tracking-tight"
+                                        className="text-3xl font-bold text-white hover:text-[#70E000] transition-colors tracking-tight block"
                                     >
                                         {displayName}
                                     </Link>
-                                </motion.div>
+                                </div>
                             );
                         })}
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.5 }}
-                        >
+                        <div>
                             {location.pathname !== '/login' && (
                                 <Link to="/login" onClick={() => setIsOpen(false)}>
                                     <Button variant="primary" className="mt-8 px-10 py-4 text-xl rounded-full bg-white text-black !hover:shadow-[0_0_30px_#70E000]">
@@ -219,7 +221,7 @@ const Header = () => {
                                     </Button>
                                 </Link>
                             )}
-                        </motion.div>
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>

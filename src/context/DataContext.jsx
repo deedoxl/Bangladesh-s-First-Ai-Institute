@@ -265,13 +265,12 @@ export const DataProvider = ({ children }) => {
         // 2. Listen for Auth Changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             console.log("Auth State Changed:", _event, session?.user?.email);
-            // If session changes, update currentUser
             if (session?.user) {
-                // ideally fetch profile again, but for now just set user
-                // actually the getSession logic above handles initial load.
-                // onAuthStateChange is for subsequent events like sign out.
-                if (_event === 'SIGNED_OUT') setCurrentUser(null);
+                supabase.from('users').select('*').eq('id', session.user.id).single().then(({ data }) => {
+                    if (data) setCurrentUser(data);
+                });
             }
+            if (_event === 'SIGNED_OUT') setCurrentUser(null);
         });
 
         // FAILSAFE: Ensure loadingAuth turns off eventually
@@ -284,6 +283,29 @@ export const DataProvider = ({ children }) => {
             clearTimeout(safetyTimer);
         };
     }, []);
+
+    // 3. Realtime User Profile Sync (Listens to DB changes for current user)
+    useEffect(() => {
+        if (!currentUser?.id || !supabase) return;
+
+        const userChannel = supabase.channel(`global_user_sync_${currentUser.id}`)
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'users',
+                filter: `id=eq.${currentUser.id}`
+            }, (payload) => {
+                if (payload.new) {
+                    console.log("⚡ Realtime user profile update received in DataContext:", payload.new);
+                    setCurrentUser(prev => ({ ...(prev || {}), ...payload.new }));
+                }
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(userChannel);
+        };
+    }, [currentUser?.id]);
 
     // --- FETCHER ---
     const fetchAllContent = async () => {

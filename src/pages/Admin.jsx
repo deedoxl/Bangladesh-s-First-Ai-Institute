@@ -246,6 +246,112 @@ const Admin = () => {
         }
     };
 
+    const [targetEmailInput, setTargetEmailInput] = useState('');
+
+    const executeQuickActionByEmail = async (actionType) => {
+        const cleanEmail = targetEmailInput.trim().toLowerCase();
+        if (!cleanEmail) {
+            alert('Please enter a valid Gmail address.');
+            return;
+        }
+
+        let updates = {};
+        let actionMsg = '';
+
+        if (actionType === 'grant_admin') {
+            updates = {
+                role: 'dashboard_admin',
+                is_dashboard_admin: true,
+                is_admin: true,
+                membership_type: 'admin'
+            };
+            actionMsg = `Granted Dashboard Admin rights to ${cleanEmail}`;
+        } else if (actionType === 'remove_admin') {
+            updates = {
+                role: 'student',
+                is_dashboard_admin: false,
+                is_admin: false,
+                membership_type: 'free'
+            };
+            actionMsg = `Removed Admin rights from ${cleanEmail}`;
+        } else if (actionType === 'ban') {
+            updates = {
+                is_banned: true,
+                banned: true
+            };
+            actionMsg = `Banned account ${cleanEmail}`;
+        } else if (actionType === 'unban') {
+            updates = {
+                is_banned: false,
+                banned: false
+            };
+            actionMsg = `Unbanned account ${cleanEmail}`;
+        }
+
+        const { data, error } = await supabase
+            .from('users')
+            .update(updates)
+            .eq('email', cleanEmail)
+            .select();
+
+        if (error) {
+            alert(`Error: ${error.message}`);
+        } else if (!data || data.length === 0) {
+            alert(`No user account found in database with email: ${cleanEmail}`);
+        } else {
+            alert(`Success! ${actionMsg}`);
+            setTargetEmailInput('');
+            fetchUsers();
+            fetchGmailUsers();
+        }
+    };
+
+    const updateUserRole = async (userId, newRole) => {
+        const isDashboardAdmin = newRole === 'dashboard_admin' || newRole === 'admin';
+        if (!confirm(`Change user role to ${isDashboardAdmin ? 'Dashboard Admin' : 'Student / Member'}?`)) return;
+
+        const { error } = await supabase
+            .from('users')
+            .update({
+                role: isDashboardAdmin ? 'dashboard_admin' : 'student',
+                is_dashboard_admin: isDashboardAdmin,
+                is_admin: isDashboardAdmin,
+                membership_type: isDashboardAdmin ? 'admin' : 'free'
+            })
+            .eq('id', userId);
+
+        if (error) {
+            alert('Error updating user role: ' + error.message);
+        } else {
+            setUsersList(prev => prev.map(u => u.id === userId ? { ...u, role: isDashboardAdmin ? 'dashboard_admin' : 'student', is_dashboard_admin: isDashboardAdmin, is_admin: isDashboardAdmin, membership_type: isDashboardAdmin ? 'admin' : 'free' } : u));
+            setGmailUsers(prev => prev.map(u => u.id === userId ? { ...u, role: isDashboardAdmin ? 'dashboard_admin' : 'student', is_dashboard_admin: isDashboardAdmin, is_admin: isDashboardAdmin, membership_type: isDashboardAdmin ? 'admin' : 'free' } : u));
+            alert(`User role updated to ${isDashboardAdmin ? 'Dashboard Admin' : 'Student'}`);
+        }
+    };
+
+    const toggleBanUser = async (userId, currentBannedState) => {
+        const action = currentBannedState ? 'Unban' : 'Ban';
+        if (!confirm(`Are you sure you want to ${action} this user's account?`)) return;
+
+        const newBannedState = !currentBannedState;
+
+        const { error } = await supabase
+            .from('users')
+            .update({
+                is_banned: newBannedState,
+                banned: newBannedState
+            })
+            .eq('id', userId);
+
+        if (error) {
+            alert(`Error updating ban status: ` + error.message);
+        } else {
+            setUsersList(prev => prev.map(u => u.id === userId ? { ...u, is_banned: newBannedState, banned: newBannedState } : u));
+            setGmailUsers(prev => prev.map(u => u.id === userId ? { ...u, is_banned: newBannedState, banned: newBannedState } : u));
+            alert(`User account has been ${newBannedState ? 'BANNED' : 'UNBANNED'} successfully!`);
+        }
+    };
+
     const fetchGmailUsers = async () => {
         setLoadingGmailUsers(true);
         const { data, error } = await supabase
@@ -265,6 +371,8 @@ const Admin = () => {
     React.useEffect(() => {
         if (activeTab === 'users') {
             fetchUsers();
+        } else if (activeTab === 'students_gmail') {
+            fetchGmailUsers();
         }
     }, [activeTab]);
 
@@ -2330,6 +2438,145 @@ const Admin = () => {
                             )
                         }
 
+                        {/* USERS TAB - USER & ROLE MANAGEMENT */}
+                        {
+                            activeTab === 'users' && (
+                                <div className="space-y-6">
+                                    <div className="flex justify-between items-center border-b border-white/10 pb-4">
+                                        <div>
+                                            <h2 className="text-2xl font-bold text-white">User Management & Admin Roles</h2>
+                                            <p className="text-deedox-text-muted text-sm">Assign Dashboard Admin privileges & manage user memberships.</p>
+                                        </div>
+                                        <Button variant="outline" className="py-2 text-sm" onClick={fetchUsers}>
+                                            Refresh Users
+                                        </Button>
+                                    </div>
+
+                                    {/* QUICK GMAIL ACTION BAR */}
+                                    <div className="bg-white/5 border border-white/10 rounded-2xl p-5 shadow-lg">
+                                        <h3 className="text-white font-bold text-sm mb-1 flex items-center gap-2">
+                                            <Shield size={16} className="text-[#70E000]" /> Real-time Gmail Moderation & Role Assignment
+                                        </h3>
+                                        <p className="text-xs text-white/50 mb-4">
+                                            Enter any user's Gmail address below to instantly make them Dashboard Admin or Ban/Unban their account in real-time.
+                                        </p>
+                                        <div className="flex flex-col sm:flex-row gap-3">
+                                            <input
+                                                type="email"
+                                                placeholder="Enter user gmail address (e.g. name@gmail.com)"
+                                                value={targetEmailInput}
+                                                onChange={(e) => setTargetEmailInput(e.target.value)}
+                                                className="flex-1 bg-black/60 border border-white/20 rounded-xl px-4 py-2.5 text-sm text-white focus:border-[#70E000] outline-none"
+                                            />
+                                            <div className="flex flex-wrap gap-2">
+                                                <button
+                                                    onClick={() => executeQuickActionByEmail('grant_admin')}
+                                                    className="px-4 py-2.5 bg-[#70E000] text-black font-bold text-xs rounded-xl hover:brightness-110 transition-all flex items-center gap-1.5 shadow-md shadow-[#70E000]/20"
+                                                >
+                                                    Make Admin
+                                                </button>
+                                                <button
+                                                    onClick={() => executeQuickActionByEmail('remove_admin')}
+                                                    className="px-4 py-2.5 bg-red-500/20 text-red-400 border border-red-500/30 font-bold text-xs rounded-xl hover:bg-red-500/30 transition-all"
+                                                >
+                                                    Remove Admin
+                                                </button>
+                                                <button
+                                                    onClick={() => executeQuickActionByEmail('ban')}
+                                                    className="px-4 py-2.5 bg-red-600 text-white font-bold text-xs rounded-xl hover:bg-red-700 transition-all"
+                                                >
+                                                    Ban Account
+                                                </button>
+                                                <button
+                                                    onClick={() => executeQuickActionByEmail('unban')}
+                                                    className="px-4 py-2.5 bg-green-600/30 text-green-400 border border-green-500/30 font-bold text-xs rounded-xl hover:bg-green-600/50 transition-all"
+                                                >
+                                                    Unban
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {loadingUsers ? (
+                                        <div className="text-white/50 text-center py-10">Loading user accounts...</div>
+                                    ) : (
+                                        <div className="bg-black/20 rounded-xl border border-white/5 overflow-hidden">
+                                            <table className="w-full text-left border-collapse">
+                                                <thead>
+                                                    <tr className="bg-white/5 text-xs text-deedox-text-muted uppercase tracking-wider">
+                                                        <th className="p-4 font-bold border-b border-white/10">User</th>
+                                                        <th className="p-4 font-bold border-b border-white/10">Email</th>
+                                                        <th className="p-4 font-bold border-b border-white/10">Membership</th>
+                                                        <th className="p-4 font-bold border-b border-white/10">Admin Role</th>
+                                                        <th className="p-4 font-bold border-b border-white/10 text-right">Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {usersList.map((user) => {
+                                                        const isDashboardAdmin = user.role === 'dashboard_admin' || user.role === 'admin' || user.is_dashboard_admin || user.is_admin;
+                                                        return (
+                                                            <tr key={user.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                                                                <td className="p-4 flex items-center gap-3">
+                                                                    <div className="w-9 h-9 rounded-full bg-white/10 overflow-hidden flex-shrink-0">
+                                                                        {user.avatar_url ? (
+                                                                            <img src={user.avatar_url} alt={user.name} className="w-full h-full object-cover" />
+                                                                        ) : (
+                                                                            <div className="w-full h-full flex items-center justify-center text-white/60 font-bold text-xs">{(user.name || user.email || '?')[0].toUpperCase()}</div>
+                                                                        )}
+                                                                    </div>
+                                                                    <div>
+                                                                        <div className="text-white font-bold text-sm">{user.name || 'No Name'}</div>
+                                                                        <div className="text-xs text-white/40">{new Date(user.created_at || Date.now()).toLocaleDateString()}</div>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="p-4 text-white/80 text-sm">{user.email || 'N/A'}</td>
+                                                                <td className="p-4">
+                                                                    <select
+                                                                        value={user.membership_type || 'free'}
+                                                                        onChange={(e) => updateMembership(user.id, e.target.value)}
+                                                                        className="bg-black/40 text-xs font-bold text-white border border-white/10 rounded-lg px-2 py-1 outline-none focus:border-deedox-accent-primary"
+                                                                    >
+                                                                        <option value="free" className="bg-neutral-900">Free</option>
+                                                                        <option value="pro" className="bg-neutral-900">Pro</option>
+                                                                        <option value="premium" className="bg-neutral-900">Premium</option>
+                                                                        <option value="vip" className="bg-neutral-900">VIP</option>
+                                                                    </select>
+                                                                </td>
+                                                                <td className="p-4">
+                                                                    <span className={`text-[10px] font-bold uppercase px-2.5 py-1 rounded-full ${isDashboardAdmin ? 'bg-deedox-accent-primary/20 text-deedox-accent-primary border border-deedox-accent-primary/30' : 'bg-white/5 text-white/40'}`}>
+                                                                        {isDashboardAdmin ? 'Dashboard Admin' : 'Student / Member'}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="p-4 text-right">
+                                                                    <button
+                                                                        onClick={() => updateUserRole(user.id, isDashboardAdmin ? 'student' : 'dashboard_admin')}
+                                                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${isDashboardAdmin ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20' : 'bg-deedox-accent-primary text-black hover:brightness-110'}`}
+                                                                    >
+                                                                        {isDashboardAdmin ? 'Remove Admin' : 'Make Dashboard Admin'}
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => toggleBanUser(user.id, user.is_banned || user.banned)}
+                                                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ml-2 ${(user.is_banned || user.banned) ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/30' : 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30'}`}
+                                                                    >
+                                                                        {(user.is_banned || user.banned) ? 'Unban' : 'Ban Account'}
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                    {usersList.length === 0 && (
+                                                        <tr>
+                                                            <td colSpan="5" className="p-8 text-center text-white/30 italic">No users found.</td>
+                                                        </tr>
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+                                </div>
+                            )
+                        }
+
                         {/* STUDENTS TAB */}
                         {
                             activeTab === 'students' && (
@@ -2391,50 +2638,64 @@ const Admin = () => {
                                                     <tr className="border-b border-white/10 bg-white/5">
                                                         <th className="p-4 text-xs font-bold text-white/50 uppercase">Email Address</th>
                                                         <th className="p-4 text-xs font-bold text-white/50 uppercase">User ID (UUID)</th>
+                                                        <th className="p-4 text-xs font-bold text-white/50 uppercase">Admin Status</th>
                                                         <th className="p-4 text-xs font-bold text-white/50 uppercase">Account Created</th>
-                                                        <th className="p-4 text-xs font-bold text-white/50 uppercase">Last Login</th>
+                                                        <th className="p-4 text-xs font-bold text-white/50 uppercase text-right">Actions</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     {loadingGmailUsers ? (
                                                         <tr>
-                                                            <td colSpan="4" className="p-8 text-center text-white/30 italic">Loading users...</td>
+                                                            <td colSpan="5" className="p-8 text-center text-white/30 italic">Loading users...</td>
                                                         </tr>
                                                     ) : gmailUsers.length > 0 ? (
-                                                        gmailUsers.map(user => (
-                                                            <tr key={user.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                                                                <td className="p-4 text-white font-medium text-sm">
-                                                                    {user.email}
-                                                                </td>
-                                                                <td className="p-4 text-xs text-white/40 font-mono">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span>{user.id}</span>
+                                                        gmailUsers.map(user => {
+                                                            const isDashboardAdmin = user.role === 'dashboard_admin' || user.role === 'admin' || user.is_dashboard_admin || user.is_admin;
+                                                            return (
+                                                                <tr key={user.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                                                                    <td className="p-4 text-white font-medium text-sm">
+                                                                        {user.email}
+                                                                    </td>
+                                                                    <td className="p-4 text-xs text-white/40 font-mono">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span>{user.id}</span>
+                                                                            <button
+                                                                                onClick={() => navigator.clipboard.writeText(user.id)}
+                                                                                className="hover:text-deedox-accent-primary"
+                                                                                title="Copy UUID"
+                                                                            >
+                                                                                <Layers size={12} />
+                                                                            </button>
+                                                                        </div>
+                                                                    </td>
+                                                                    <td className="p-4">
+                                                                        <span className={`text-[10px] font-bold uppercase px-2.5 py-1 rounded-full ${isDashboardAdmin ? 'bg-deedox-accent-primary/20 text-deedox-accent-primary border border-deedox-accent-primary/30' : 'bg-white/5 text-white/40'}`}>
+                                                                            {isDashboardAdmin ? 'Dashboard Admin' : 'Student / Member'}
+                                                                        </span>
+                                                                    </td>
+                                                                    <td className="p-4 text-xs text-white/60">
+                                                                        {new Date(user.created_at).toLocaleDateString()} <span className="text-white/30">{new Date(user.created_at).toLocaleTimeString()}</span>
+                                                                    </td>
+                                                                    <td className="p-4 text-right">
                                                                         <button
-                                                                            onClick={() => navigator.clipboard.writeText(user.id)}
-                                                                            className="hover:text-deedox-accent-primary"
-                                                                            title="Copy UUID"
+                                                                            onClick={() => updateUserRole(user.id, isDashboardAdmin ? 'student' : 'dashboard_admin')}
+                                                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${isDashboardAdmin ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20' : 'bg-deedox-accent-primary text-black hover:brightness-110'}`}
                                                                         >
-                                                                            <Layers size={12} />
+                                                                            {isDashboardAdmin ? 'Remove Admin' : 'Make Dashboard Admin'}
                                                                         </button>
-                                                                    </div>
-                                                                </td>
-                                                                <td className="p-4 text-xs text-white/60">
-                                                                    {new Date(user.created_at).toLocaleDateString()} <span className="text-white/30">{new Date(user.created_at).toLocaleTimeString()}</span>
-                                                                </td>
-                                                                <td className="p-4 text-xs text-white/60">
-                                                                    {user.last_sign_in_at ? (
-                                                                        <>
-                                                                            {new Date(user.last_sign_in_at).toLocaleDateString()} <span className="text-white/30">{new Date(user.last_sign_in_at).toLocaleTimeString()}</span>
-                                                                        </>
-                                                                    ) : (
-                                                                        <span className="text-white/20 italic">Never</span>
-                                                                    )}
-                                                                </td>
-                                                            </tr>
-                                                        ))
+                                                                        <button
+                                                                            onClick={() => toggleBanUser(user.id, user.is_banned || user.banned)}
+                                                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ml-2 ${(user.is_banned || user.banned) ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/30' : 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30'}`}
+                                                                        >
+                                                                            {(user.is_banned || user.banned) ? 'Unban' : 'Ban Account'}
+                                                                        </button>
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })
                                                     ) : (
                                                         <tr>
-                                                            <td colSpan="4" className="p-8 text-center text-white/30 italic">No Gmail users found.</td>
+                                                            <td colSpan="5" className="p-8 text-center text-white/30 italic">No Gmail users found.</td>
                                                         </tr>
                                                     )}
                                                 </tbody>

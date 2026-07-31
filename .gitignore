@@ -12,6 +12,13 @@ dist
 dist-ssr
 *.local
 
+# Environment and Local Scripts
+.env
+.env.*
+update_key_new.js
+scripts/force_key_update.js
+check_current_models.js
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
