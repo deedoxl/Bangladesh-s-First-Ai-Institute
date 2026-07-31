@@ -32,11 +32,14 @@ const News = () => {
         fetchNews();
 
         // Realtime updates for News
-        const channel = supabase.channel('public_news_page')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'news' }, fetchNews)
-            .subscribe();
+        const channel = supabase?.channel ? supabase.channel('public_news_page') : null;
+        if (channel) {
+            channel
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'news' }, fetchNews)
+                .subscribe();
+        }
 
-        return () => { supabase.removeChannel(channel); };
+        return () => { if (channel && supabase?.removeChannel) { supabase.removeChannel(channel); } };
     }, []);
 
     const handleSubscribe = async (e) => {

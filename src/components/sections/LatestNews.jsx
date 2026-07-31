@@ -26,11 +26,14 @@ const LatestNews = () => {
         fetchLatestNews();
 
         // Realtime Subscription for immediate updates
-        const channel = supabase.channel('latest_news_home')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'news' }, fetchLatestNews)
-            .subscribe();
+        const channel = supabase?.channel ? supabase.channel('latest_news_home') : null;
+        if (channel) {
+            channel
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'news' }, fetchLatestNews)
+                .subscribe();
+        }
 
-        return () => { supabase.removeChannel(channel); };
+        return () => { if (channel && supabase?.removeChannel) { supabase.removeChannel(channel); } };
     }, []);
 
     if (loading) return null; // Don't show anything while loading to avoid layout shift, or show skeleton? Prefer clean.

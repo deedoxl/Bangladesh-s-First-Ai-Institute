@@ -174,7 +174,7 @@ const StudentDashboard = () => {
     useEffect(() => {
         if (!currentUser?.id || !supabase) return;
 
-        const userSyncChannel = supabase.channel(`user_sync_channel_${currentUser.id}`)
+        const userSyncChannel = supabase?.channel ? supabase.channel(`user_sync_channel_${currentUser.id}`)
             .on('postgres_changes', {
                 event: 'UPDATE',
                 schema: 'public',
@@ -190,10 +190,10 @@ const StudentDashboard = () => {
                     });
                 }
             })
-            .subscribe();
+            .subscribe() : null;
 
         return () => {
-            supabase.removeChannel(userSyncChannel);
+            if (userSyncChannel && supabase?.removeChannel) supabase.removeChannel(userSyncChannel);
         };
     }, [currentUser?.id]);
 
@@ -224,13 +224,14 @@ const StudentDashboard = () => {
 
         // Join Community Channel for Messages & Presence
         const channelId = activeCommunityId ? `community:${activeCommunityId}` : 'community_global';
-        const channel = supabase.channel(channelId)
+        const channel = supabase?.channel ? supabase.channel(channelId)
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'community_messages', filter: activeCommunityId ? `community_id=eq.${activeCommunityId}` : undefined }, (payload) => {
                 // Fetch full message details (with sender info)
                 // Or better, just trigger a re-fetch since mapping sender is complex in pure payload
                 if (activeCommunityId) fetchCommunityMessages(activeCommunityId);
             })
             .on('presence', { event: 'sync' }, () => {
+                if (!channel) return;
                 const newState = channel.presenceState();
                 const users = [];
                 for (const id in newState) {
@@ -240,7 +241,7 @@ const StudentDashboard = () => {
                 setOnlineUsers(users);
             })
             .subscribe(async (status) => {
-                if (status === 'SUBSCRIBED') {
+                if (status === 'SUBSCRIBED' && channel) {
                     await channel.track({
                         online_at: new Date().toISOString(),
                         user_id: currentUser.id,
@@ -249,9 +250,9 @@ const StudentDashboard = () => {
                         avatar_url: userProfile?.avatar_url
                     });
                 }
-            });
+            }) : null;
 
-        return () => { supabase.removeChannel(channel); };
+        return () => { if (channel && supabase?.removeChannel) { supabase.removeChannel(channel); } };
     }, [activeCommunityId, currentUser, userProfile]);
 
 
@@ -325,7 +326,7 @@ const StudentDashboard = () => {
 
         // Subscribe to NEW messages
         // Subscribe to NEW messages
-        const channel = supabase.channel('realtime_chats')
+        const channel = supabase?.channel ? supabase.channel('realtime_chats')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'community_messages' }, async (payload) => {
                 // Handle Community Message
                 if (payload.new.community_id === activeCommunityId) {
@@ -375,9 +376,9 @@ const StudentDashboard = () => {
                     }
                 }
             })
-            .subscribe();
+            .subscribe() : null;
 
-        return () => { supabase.removeChannel(channel); };
+        return () => { if (channel && supabase?.removeChannel) { supabase.removeChannel(channel); } };
 
     }, [currentUser, activeCommunityId]);
 
@@ -2369,13 +2370,13 @@ const SocialFeed = ({ currentUser, userProfile, isAdmin, setActiveTab, setSearch
 
         fetchPosts();
 
-        const channel = supabase.channel('public_social')
+        const channel = supabase?.channel ? supabase.channel('public_social')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => fetchPosts())
             .on('postgres_changes', { event: '*', schema: 'public', table: 'post_likes' }, () => fetchPosts())
             .on('postgres_changes', { event: '*', schema: 'public', table: 'post_comments' }, () => fetchPosts())
-            .subscribe();
+            .subscribe() : null;
 
-        return () => { supabase.removeChannel(channel); };
+        return () => { if (channel && supabase?.removeChannel) { supabase.removeChannel(channel); } };
     }, [currentUser.id]);
 
     const fetchPosts = async () => {

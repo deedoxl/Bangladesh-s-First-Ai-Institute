@@ -288,7 +288,7 @@ export const DataProvider = ({ children }) => {
     useEffect(() => {
         if (!currentUser?.id || !supabase) return;
 
-        const userChannel = supabase.channel(`global_user_sync_${currentUser.id}`)
+        const userChannel = supabase?.channel ? supabase.channel(`global_user_sync_${currentUser.id}`)
             .on('postgres_changes', {
                 event: 'UPDATE',
                 schema: 'public',
@@ -300,10 +300,10 @@ export const DataProvider = ({ children }) => {
                     setCurrentUser(prev => ({ ...(prev || {}), ...payload.new }));
                 }
             })
-            .subscribe();
+            .subscribe() : null;
 
         return () => {
-            supabase.removeChannel(userChannel);
+            if (userChannel && supabase?.removeChannel) supabase.removeChannel(userChannel);
         };
     }, [currentUser?.id]);
 
@@ -527,7 +527,7 @@ export const DataProvider = ({ children }) => {
         fetchAllContent();
 
         // One channel for all content updates (সব আপডেটের জন্য একটি চ্যানেল)
-        const channel = supabase.channel('content_updates')
+        const channel = supabase?.channel ? supabase.channel('content_updates')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'courses' }, fetchAllContent)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'resources' }, fetchAllContent)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'featured_students' }, fetchAllContent)
@@ -547,9 +547,9 @@ export const DataProvider = ({ children }) => {
             .on('postgres_changes', { event: '*', schema: 'public', table: 'workshop_popup_config' }, fetchAllContent) // Workshop Popup Realtime
             .on('postgres_changes', { event: '*', schema: 'public', table: 'testimonials' }, fetchAllContent) // Testimonials Realtime
             .on('postgres_changes', { event: '*', schema: 'public', table: 'dashboard_hero_slides' }, fetchAllContent) // [NEW] Dashboard Slides
-            .subscribe();
+            .subscribe() : null;
 
-        return () => { supabase.removeChannel(channel); };
+        return () => { if (channel && supabase?.removeChannel) { supabase.removeChannel(channel); } };
     }, []);
 
 
