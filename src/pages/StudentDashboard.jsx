@@ -1339,7 +1339,7 @@ const StudentDashboard = () => {
                                 {activeTab === 'settings' && 'Account Settings'}
                             </h1>
                             <p className="text-white/40 text-sm">
-                                {activeTab === 'dashboard' ? 'Start your AI learning journey with Didox AI for free.'
+                                {activeTab === 'dashboard' ? 'Start your AI learning journey with DEEDOX AI for free.'
                                     : activeTab === 'connections' ? 'Build your professional network with fellow innovators.'
                                         : activeTab === 'news' ? 'Latest updates from the AI world.'
                                             : activeTab === 'programs' ? 'Master future skills with our comprehensive curriculums.'
