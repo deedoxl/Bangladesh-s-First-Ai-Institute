@@ -110,7 +110,6 @@ Deno.serve(async (req: Request) => {
         let apiKey = null;
 
         // Priority 1: Database RPC (System Settings - Dynamic)
-        // We prioritize this so the Admin Panel setting takes immediate effect without redeploying env vars
         const { data: dbKey, error: keyError } = await supabaseAdmin.rpc('get_decrypted_system_key');
 
         if (!keyError && dbKey) {
@@ -132,12 +131,12 @@ Deno.serve(async (req: Request) => {
                 error: "Critical: No AI API Key found in Database or Environment."
             }), {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                status: 200 // MANDATORY 5
+                status: 200
             });
         }
 
         // 5. Call AI Provider (OpenRouter)
-        console.log("Calling OpenRouter...");
+        console.log("Calling OpenRouter with openrouter/free...");
         const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
             method: "POST",
             headers: {
@@ -147,7 +146,7 @@ Deno.serve(async (req: Request) => {
                 "X-Title": "DEEDOX AI"
             },
             body: JSON.stringify({
-                model: targetModelId, // [FIX] Use Sanitized ID
+                model: "openrouter/free",
                 messages: messages,
             })
         });
