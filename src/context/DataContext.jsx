@@ -388,7 +388,8 @@ export const DataProvider = ({ children }) => {
                     popup_btn_secondary_text: c.popup_btn_secondary_text || 'Maybe Later',
                     popup_btn_secondary_link: c.popup_btn_secondary_link || '',
                     popup_footer_text: c.popup_footer_text || 'Created by DEEDOX',
-                    playlist: c.playlist || []
+                    playlist: c.playlist || [],
+                    is_locked: c.is_locked || false
                 })));
             }
 
@@ -603,7 +604,8 @@ export const DataProvider = ({ children }) => {
                     popup_btn_secondary_text: c.popup_btn_secondary_text || 'Maybe Later',
                     popup_btn_secondary_link: c.popup_btn_secondary_link || '',
                     popup_footer_text: c.popup_footer_text || 'Created by DEEDOX',
-                    playlist: c.playlist || []
+                    playlist: c.playlist || [],
+                    is_locked: c.is_locked || false
                 })), ...prev]);
             }
         },
@@ -620,6 +622,7 @@ export const DataProvider = ({ children }) => {
             if (updates.duration !== undefined) dbUpdates.duration = updates.duration;
             if (updates.status !== undefined) dbUpdates.status = updates.status;
             if (updates.link !== undefined) dbUpdates.link = updates.link;
+            if (updates.is_locked !== undefined) dbUpdates.is_locked = updates.is_locked;
             
             // New popup and video fields
             if (updates.video_url !== undefined) dbUpdates.video_url = updates.video_url;

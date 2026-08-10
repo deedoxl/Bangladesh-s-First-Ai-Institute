@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, ExternalLink } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 
-const DashboardHero = () => {
+const DashboardHero = ({ onNavigate }) => {
     const { dashboardSlides } = useData();
     const [currentIndex, setCurrentIndex] = useState(0);
     const [activeSlides, setActiveSlides] = useState([]);
@@ -24,6 +24,18 @@ const DashboardHero = () => {
         }, 5000); // 5 seconds
         return () => clearInterval(timer);
     }, [activeSlides.length]);
+
+    const handleCtaClick = (e, link) => {
+        if (!link) return;
+        if (link.includes('tab=')) {
+            e.preventDefault();
+            const match = link.match(/tab=([^&]+)/);
+            if (match && match[1] && onNavigate) {
+                onNavigate(match[1]);
+                return;
+            }
+        }
+    };
 
     if (!activeSlides || activeSlides.length === 0) return null;
 
@@ -71,6 +83,7 @@ const DashboardHero = () => {
                         <div className="pt-6">
                             <a
                                 href={slide.cta_link || '#'}
+                                onClick={(e) => handleCtaClick(e, slide.cta_link)}
                                 className="inline-flex items-center gap-3 bg-white text-black px-8 py-4 rounded-full font-bold text-base hover:bg-deedox-accent-primary transition-all shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:shadow-[0_0_25px_rgba(112,224,0,0.5)] transform hover:scale-105 active:scale-95 group/btn"
                             >
                                 {slide.cta_text || 'Explore'}

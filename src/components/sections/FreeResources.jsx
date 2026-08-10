@@ -64,23 +64,24 @@ const FreeResources = () => {
     return (
         <section id="resources" className="py-24 premium-glass-green-bg relative">
             <div className="container mx-auto px-4">
-                <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
-                    <div className="max-w-2xl">
-                        <h2 className="text-4xl md:text-5xl font-bold uppercase tracking-tight mb-4">
-                            <span className="text-[#70E000]">Free</span>{' '}
-                            <span className="bg-gradient-to-r from-white via-white via-70% to-gray-500 text-transparent bg-clip-text">Resources</span>
-                        </h2>
-                        <p className="text-deedox-text-secondary text-lg font-light">
-                            Hand-picked tools, templates, and guides to accelerate your startup journey without spending a dime.
-                        </p>
-                    </div>
-                    <Button variant="outline" className="px-6 py-3">View All Resources</Button>
+                <div className="text-center mb-16 space-y-4">
+                    <h2 className="text-4xl md:text-5xl font-bold uppercase tracking-tight">
+                        <span className="text-[#70E000]">Learning</span>{' '}
+                        <span className="bg-gradient-to-r from-white via-white via-70% to-gray-500 text-transparent bg-clip-text">Resources</span>
+                    </h2>
+                    <p className="text-deedox-text-secondary max-w-2xl mx-auto text-lg font-light">
+                        Hand-picked tools, templates, and guides to accelerate your startup journey without spending a dime.
+                    </p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
                     {resources?.items?.map((res, index) => (
                         <ResourceCard key={res.id} resource={res} index={index} />
                     ))}
+                </div>
+
+                <div className="text-center">
+                    <Button variant="outline" className="px-6 py-3">View All Resources</Button>
                 </div>
             </div>
         </section>

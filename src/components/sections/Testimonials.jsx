@@ -54,7 +54,7 @@ const Testimonials = () => {
             <div className="container mx-auto px-4 relative z-10">
                 <div className="text-center mb-16">
                     <h2 className="text-4xl md:text-5xl font-bold uppercase tracking-tight mb-4">
-                        <span className="text-[#70E000]">Student</span>{' '}
+                        <span className="text-[#70E000]">Success</span>{' '}
                         <span className="bg-gradient-to-r from-white via-white via-70% to-gray-500 text-transparent bg-clip-text">Stories</span>
                     </h2>
                     <p className="text-gray-400 text-lg">Hear from the founders building the future.</p>

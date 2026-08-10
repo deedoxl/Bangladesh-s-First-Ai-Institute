@@ -2,12 +2,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../components/ui/Button';
-import { Zap, HelpCircle, Briefcase, MessageCircle, Send, Plus, Users, Hash, ImageIcon, Heart, MessageSquare, Loader2, X, Upload, MoreHorizontal, FileText, Check, LayoutDashboard, LogOut, Code, Bot, Bell, Search, Edit, CheckCircle, Compass, Trash2, Menu, Newspaper, ChevronRight, Database, Settings, Globe, Cpu, Shield, AlertTriangle } from 'lucide-react';
+import { Zap, HelpCircle, Briefcase, MessageCircle, Send, Plus, Users, Hash, ImageIcon, Heart, MessageSquare, Loader2, X, Upload, MoreHorizontal, FileText, Check, LayoutDashboard, LogOut, Code, Bot, Bell, Search, Edit, CheckCircle, Compass, Trash2, Menu, Newspaper, ChevronRight, Database, Settings, Globe, Cpu, Shield, AlertTriangle, Lock } from 'lucide-react';
 import { cn } from '../utils/cn';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import News from './News';
 import DashboardHero from '../components/student/DashboardHero'; // [NEW] Hero Slider
 import { ProgramDetailModal } from '../components/sections/OurPrograms';
+import ProAccessModal from '../components/popups/ProAccessModal';
 import { useData } from '../context/DataContext';
 import { supabase } from '../lib/supabaseClient';
 import { uploadToCloudinary } from '../lib/cloudinary';
@@ -18,7 +19,15 @@ const StudentDashboard = () => {
     const navigate = useNavigate();
     const { settings, aiChatSettings, aiModels, currentUser, loadingAuth, programs } = useData(); // Use Global Auth (V24)
 
+    const [searchParams] = useSearchParams();
     const [activeTab, setActiveTab] = useState('dashboard'); // dashboard | community | partners | ai_suite
+
+    useEffect(() => {
+        const tab = searchParams.get('tab');
+        if (tab) {
+            setActiveTab(tab);
+        }
+    }, [searchParams]);
     const [aiMode, setAiMode] = useState('deedox_ai'); // deedox_ai | deedox_help | startup_discuss
     const messagesEndRef = useRef(null); // [NEW] Ref for Auto-Scrolling
 
@@ -47,6 +56,7 @@ const StudentDashboard = () => {
 
     const [dmHistory, setDmHistory] = useState({});
     const [selectedProgram, setSelectedProgram] = useState(null);
+    const [proModalProgram, setProModalProgram] = useState(null);
 
     // --- Community Group State ---
     const [communities, setCommunities] = useState([]); // List of communities
@@ -1329,7 +1339,7 @@ const StudentDashboard = () => {
                                 {activeTab === 'settings' && 'Account Settings'}
                             </h1>
                             <p className="text-white/40 text-sm">
-                                {activeTab === 'dashboard' ? 'Welcome to Aaghaz AI - Start your learning journey for free!'
+                                {activeTab === 'dashboard' ? 'Start your AI learning journey with Didox AI for free.'
                                     : activeTab === 'connections' ? 'Build your professional network with fellow innovators.'
                                         : activeTab === 'news' ? 'Latest updates from the AI world.'
                                             : activeTab === 'programs' ? 'Master future skills with our comprehensive curriculums.'
@@ -1375,46 +1385,46 @@ const StudentDashboard = () => {
                     activeTab === 'dashboard' && (
                         <div className="space-y-8 animate-fade-in pb-20 overflow-y-auto custom-scrollbar h-[calc(100vh-200px)]">
                             {/* HERO SECTION */}
-                            <DashboardHero />
+                            <DashboardHero onNavigate={(tab) => setActiveTab(tab)} />
 
-                            {/* GRID CARDS (Reference: AI Chat, Resources, Events) */}
+                            {/* GRID CARDS (DEEDOX AI Assistant, DEEDOX Community, Kickstart Your Startup) */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                {/* Card 1: AI Chat */}
+                                {/* Card 1: DEEDOX AI Assistant */}
                                 <div className="glass-card p-6 rounded-3xl relative overflow-hidden group hover:border-deedox-accent-primary/30 cursor-pointer" onClick={() => setActiveTab('ai_suite')}>
                                     <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                                     <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center mb-4 group-hover:bg-deedox-accent-primary/20 transition-colors">
                                         <MessageSquare size={24} className="text-deedox-accent-primary" />
                                     </div>
-                                    <h3 className="text-lg font-bold text-white mb-2">AI Chat Assistant</h3>
-                                    <p className="text-white/50 text-sm mb-6">Chat with GPT-5 powered AI assistant</p>
+                                    <h3 className="text-lg font-bold text-white mb-2">DEEDOX AI Assistant</h3>
+                                    <p className="text-white/50 text-sm mb-6">Get instant solutions and guidance from our intelligent AI tool.</p>
                                     <span className="text-deedox-accent-primary text-xs font-bold uppercase tracking-wider flex items-center gap-2 group-hover:gap-3 transition-all">
-                                        Explore <ChevronRight size={14} />
+                                        Chat Now <ChevronRight size={14} />
                                     </span>
                                 </div>
 
-                                {/* Card 2: Resources */}
-                                <div className="glass-card p-6 rounded-3xl relative overflow-hidden group hover:border-blue-500/30 cursor-pointer" onClick={() => setActiveTab('news')}>
+                                {/* Card 2: DEEDOX Community */}
+                                <div className="glass-card p-6 rounded-3xl relative overflow-hidden group hover:border-blue-500/30 cursor-pointer" onClick={() => setActiveTab('community')}>
                                     <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                                     <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center mb-4 group-hover:bg-blue-500/20 transition-colors">
-                                        <Briefcase size={24} className="text-blue-500" />
+                                        <Users size={24} className="text-blue-500" />
                                     </div>
-                                    <h3 className="text-lg font-bold text-white mb-2">Free Resources</h3>
-                                    <p className="text-white/50 text-sm mb-6">Watch free learning materials</p>
+                                    <h3 className="text-lg font-bold text-white mb-2">DEEDOX Community</h3>
+                                    <p className="text-white/50 text-sm mb-6">Engage with like-minded founders and creators in our interactive sessions.</p>
                                     <span className="text-blue-500 text-xs font-bold uppercase tracking-wider flex items-center gap-2 group-hover:gap-3 transition-all">
-                                        Explore <ChevronRight size={14} />
+                                        Explore Events <ChevronRight size={14} />
                                     </span>
                                 </div>
 
-                                {/* Card 3: Events */}
-                                <div className="glass-card p-6 rounded-3xl relative overflow-hidden group hover:border-purple-500/30 cursor-pointer">
+                                {/* Card 3: Kickstart Your Startup */}
+                                <div className="glass-card p-6 rounded-3xl relative overflow-hidden group hover:border-purple-500/30 cursor-pointer" onClick={() => setActiveTab('programs')}>
                                     <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                                     <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center mb-4 group-hover:bg-purple-500/20 transition-colors">
-                                        <Users size={24} className="text-purple-500" />
+                                        <Compass size={24} className="text-purple-500" />
                                     </div>
-                                    <h3 className="text-lg font-bold text-white mb-2">Free Events</h3>
-                                    <p className="text-white/50 text-sm mb-6">Join webinars and workshops</p>
+                                    <h3 className="text-lg font-bold text-white mb-2">Kickstart Your Startup</h3>
+                                    <p className="text-white/50 text-sm mb-6">Enroll in our exclusive startup program and turn your AI dreams into reality.</p>
                                     <span className="text-purple-500 text-xs font-bold uppercase tracking-wider flex items-center gap-2 group-hover:gap-3 transition-all">
-                                        Explore <ChevronRight size={14} />
+                                        Discover Programs <ChevronRight size={14} />
                                     </span>
                                 </div>
                             </div>
@@ -1461,30 +1471,78 @@ const StudentDashboard = () => {
                     activeTab === 'programs' && (
                         <div className="space-y-6 animate-fade-in pb-20">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {(programs?.items || []).map((program) => (
-                                    <div key={program.id} className="glass-card p-6 rounded-3xl border border-white/5 bg-black/40 hover:border-deedox-accent-primary/30 transition-all group relative overflow-hidden">
-                                        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                                        <div className="h-40 rounded-xl bg-white/5 mb-4 overflow-hidden relative">
-                                            {program.image ? (
-                                                <img src={program.image} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt={program.title} />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center bg-zinc-900 text-white/20 font-bold tracking-widest">COURSE</div>
-                                            )}
-                                            <div className="absolute top-2 right-2 px-2 py-1 bg-black/60 backdrop-blur-md rounded text-[10px] font-bold text-white border border-white/10">
-                                                {program.level || 'Beginner'}
+                                {(programs?.items || []).map((program) => {
+                                    const isProUser = userProfile?.membership_type === 'pro' || 
+                                                      userProfile?.membership_type === 'admin' || 
+                                                      userProfile?.membership_type === 'dashboard_admin' || 
+                                                      isAdmin;
+                                    const isLockedForUser = program.is_locked && !isProUser;
+
+                                    return (
+                                        <div key={program.id} className="glass-card p-6 rounded-3xl border border-white/5 bg-black/40 hover:border-deedox-accent-primary/30 transition-all group relative overflow-hidden flex flex-col justify-between">
+                                            <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                                            
+                                            <div>
+                                                <div className="h-44 rounded-2xl bg-white/5 mb-4 overflow-hidden relative">
+                                                    {program.image ? (
+                                                        <img src={program.image} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt={program.title} />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center bg-zinc-900 text-white/20 font-bold tracking-widest">COURSE</div>
+                                                    )}
+                                                    
+                                                    {/* Badges */}
+                                                    <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 z-10">
+                                                        <span className="px-2.5 py-1 bg-black/70 backdrop-blur-md rounded-full text-[10px] font-bold text-white border border-white/10">
+                                                            {program.level || 'Beginner'}
+                                                        </span>
+                                                        {program.is_locked ? (
+                                                            <span className={`px-2.5 py-1 backdrop-blur-md rounded-full text-[10px] font-bold flex items-center gap-1 border ${
+                                                                isProUser 
+                                                                    ? 'bg-green-500/20 text-green-400 border-green-500/30' 
+                                                                    : 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.3)]'
+                                                            }`}>
+                                                                <Lock size={12} /> {isProUser ? 'PRO UNLOCKED' : 'PRO ONLY'}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="px-2.5 py-1 bg-[#70E000]/20 backdrop-blur-md rounded-full text-[10px] font-bold text-[#70E000] border border-[#70E000]/30">
+                                                                FREE ACCESS
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <h3 className="text-xl font-bold text-white mb-2 leading-tight group-hover:text-deedox-accent-primary transition-colors">{program.title}</h3>
+                                                <p className="text-white/50 text-sm mb-4 line-clamp-2">{program.description || `${program.level || 'AI'} program by ${program.instructor || 'Deedox'}`}</p>
                                             </div>
+
+                                            <Button 
+                                                variant={isLockedForUser ? "secondary" : "outline"}
+                                                className={`w-full justify-center gap-2 border-white/10 ${
+                                                    isLockedForUser 
+                                                        ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30 font-bold' 
+                                                        : 'hover:bg-deedox-accent-primary hover:text-black'
+                                                }`}
+                                                onClick={() => {
+                                                    if (isLockedForUser) {
+                                                        setProModalProgram(program);
+                                                    } else {
+                                                        setSelectedProgram(program);
+                                                    }
+                                                }}
+                                            >
+                                                {isLockedForUser ? (
+                                                    <>
+                                                        <Lock size={16} /> Request Pro Access
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        View Details <ChevronRight size={16} />
+                                                    </>
+                                                )}
+                                            </Button>
                                         </div>
-                                        <h3 className="text-xl font-bold text-white mb-2 leading-tight group-hover:text-deedox-accent-primary transition-colors">{program.title}</h3>
-                                        <p className="text-white/50 text-sm mb-4 line-clamp-2">{program.description}</p>
-                                        <Button 
-                                            variant="outline" 
-                                            className="w-full hover:bg-deedox-accent-primary hover:text-black border-white/10"
-                                            onClick={() => setSelectedProgram(program)}
-                                        >
-                                            View Details
-                                        </Button>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                                 {(programs?.items || []).length === 0 && (
                                     <div className="col-span-full py-20 text-center text-white/30 border border-white/5 border-dashed rounded-3xl">
                                         No programs available yet.
@@ -2342,6 +2400,15 @@ const StudentDashboard = () => {
                     program={selectedProgram} 
                     onClose={() => setSelectedProgram(null)} 
                     isDashboard={true} 
+                />
+            )}
+
+            {proModalProgram && (
+                <ProAccessModal
+                    program={proModalProgram}
+                    currentUser={currentUser}
+                    userProfile={userProfile}
+                    onClose={() => setProModalProgram(null)}
                 />
             )}
         </div >

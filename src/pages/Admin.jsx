@@ -215,7 +215,58 @@ const Admin = () => {
         window.location.reload();
     };
 
-    // --- Membership Management Functions ---
+    // --- Membership Management & Pro Access Requests ---
+    const [proRequests, setProRequests] = useState([]);
+    const [loadingProRequests, setLoadingProRequests] = useState(false);
+
+    const fetchProRequests = async () => {
+        setLoadingProRequests(true);
+        try {
+            const { data, error } = await supabase
+                .from('pro_requests')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (!error && data) {
+                setProRequests(data);
+            }
+        } catch (err) {
+            console.error("Pro requests fetch error:", err);
+        } finally {
+            setLoadingProRequests(false);
+        }
+    };
+
+    const handleApproveProRequest = async (request) => {
+        if (!confirm(`Grant Pro Membership to ${request.user_name || request.email}?`)) return;
+
+        try {
+            if (request.email) {
+                await supabase
+                    .from('users')
+                    .update({ membership_type: 'pro' })
+                    .eq('email', request.email.trim().toLowerCase());
+            }
+            if (request.user_id) {
+                await supabase
+                    .from('users')
+                    .update({ membership_type: 'pro' })
+                    .eq('id', request.user_id);
+            }
+
+            await supabase
+                .from('pro_requests')
+                .update({ status: 'approved' })
+                .eq('id', request.id);
+
+            alert(`✅ Granted Pro Membership to ${request.user_name || request.email}!`);
+            fetchProRequests();
+            fetchUsers();
+        } catch (err) {
+            alert("Error approving request: " + err.message);
+        }
+    };
+
     const fetchUsers = async () => {
         setLoadingUsers(true);
         const { data, error } = await supabase
@@ -229,6 +280,7 @@ const Admin = () => {
             setUsersList(data || []);
         }
         setLoadingUsers(false);
+        fetchProRequests();
     };
 
     const updateMembership = async (userId, newType) => {
@@ -2389,6 +2441,33 @@ const Admin = () => {
                                                     <ImageUploader label="Course Image" value={img.image} onChange={v => programs.update(img.id, { image: v })} />
                                                     <InputGroup label="Redirect Link URL" value={img.link} onChange={v => programs.update(img.id, { link: v })} />
                                                     
+                                                    {/* Course Access Lock Switch */}
+                                                    <div className="col-span-1 md:col-span-2 bg-black/40 p-4 rounded-xl border border-white/10 flex items-center justify-between">
+                                                        <div>
+                                                            <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                                                                <Lock size={16} className={img.is_locked ? "text-amber-400" : "text-white/40"} />
+                                                                Course Access Lock Control (Pro Membership)
+                                                            </h4>
+                                                            <p className="text-xs text-white/50">
+                                                                {img.is_locked 
+                                                                    ? "🔒 Locked: Only approved Pro Members can access this course. Non-Pro members will see a Lead Capture Form." 
+                                                                    : "🔓 Unlocked: Free and accessible to all visitors and students."}
+                                                            </p>
+                                                        </div>
+                                                        <div className="flex items-center gap-3">
+                                                            <input
+                                                                type="checkbox"
+                                                                id={`lock_switch_${img.id}`}
+                                                                checked={img.is_locked || false}
+                                                                onChange={e => programs.update(img.id, { is_locked: e.target.checked })}
+                                                                className="w-5 h-5 accent-[#70E000] cursor-pointer"
+                                                            />
+                                                            <label htmlFor={`lock_switch_${img.id}`} className="text-xs font-bold uppercase cursor-pointer text-white">
+                                                                {img.is_locked ? <span className="text-amber-400 font-extrabold">Locked (Pro)</span> : <span className="text-[#70E000] font-extrabold">Free Access</span>}
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                    
                                                     {/* Popup & Video Config Sub-section */}
                                                     <div className="col-span-1 md:col-span-2 border-t border-white/10 pt-6 mt-4">
                                                         <h4 className="text-sm font-bold text-[#70E000] mb-4">Popup Modal & Video Settings</h4>
@@ -2495,6 +2574,70 @@ const Admin = () => {
                                                 </button>
                                             </div>
                                         </div>
+                                    </div>
+
+                                    {/* PRO MEMBERSHIP ACCESS REQUESTS LEADS */}
+                                    <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-5 shadow-lg mb-6">
+                                        <div className="flex justify-between items-center mb-3">
+                                            <div>
+                                                <h3 className="text-amber-300 font-bold text-base flex items-center gap-2">
+                                                    <Lock size={18} className="text-amber-400" /> Pending Pro Access Requests
+                                                </h3>
+                                                <p className="text-xs text-white/60">
+                                                    Leads submitted by students requesting access to locked Pro courses. Click "Approve & Grant Pro" to unlock instantly.
+                                                </p>
+                                            </div>
+                                            <button onClick={fetchProRequests} className="px-3 py-1.5 bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 rounded-xl text-xs font-bold border border-amber-500/30">
+                                                Refresh Requests
+                                            </button>
+                                        </div>
+
+                                        {proRequests.length === 0 ? (
+                                            <div className="text-xs text-white/40 py-4 text-center border border-white/5 rounded-xl bg-black/20">
+                                                No pending Pro access requests right now.
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
+                                                {proRequests.map((req) => (
+                                                    <div key={req.id} className="bg-black/50 border border-amber-500/20 rounded-xl p-3.5 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+                                                        <div>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="font-bold text-white text-sm">{req.user_name}</span>
+                                                                <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
+                                                                    req.status === 'approved' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                                                }`}>
+                                                                    {req.status || 'pending'}
+                                                                </span>
+                                                            </div>
+                                                            <div className="text-xs text-white/60 flex flex-wrap gap-x-4 gap-y-1 mt-1">
+                                                                <span>📧 {req.email}</span>
+                                                                <span>📱 {req.phone}</span>
+                                                                <span>📚 Course: <strong className="text-amber-300">{req.course_title}</strong></span>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex items-center gap-2 self-end md:self-center">
+                                                            <a
+                                                                href={`https://wa.me/8801886367375?text=${encodeURIComponent(`Hi ${req.user_name}, your request for ${req.course_title} has been reviewed.`)}`}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="px-3 py-1.5 bg-green-600/30 text-green-300 hover:bg-green-600/50 rounded-lg text-xs font-bold border border-green-500/30 flex items-center gap-1"
+                                                            >
+                                                                WhatsApp
+                                                            </a>
+                                                            {req.status !== 'approved' && (
+                                                                <button
+                                                                    onClick={() => handleApproveProRequest(req)}
+                                                                    className="px-3 py-1.5 bg-[#70E000] text-black font-extrabold hover:brightness-110 rounded-lg text-xs transition-all shadow-md shadow-[#70E000]/20"
+                                                                >
+                                                                    Approve & Grant Pro
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
 
                                     {loadingUsers ? (

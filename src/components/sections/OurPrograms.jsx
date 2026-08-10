@@ -7,6 +7,7 @@ import {
 import { Link } from 'react-router-dom';
 import Button from '../ui/Button';
 import { useData } from '../../context/DataContext';
+import ProAccessModal from '../popups/ProAccessModal';
 
 // Load YouTube Iframe API if not loaded
 const loadYouTubeAPI = (callback) => {
@@ -20,18 +21,15 @@ const loadYouTubeAPI = (callback) => {
         window.onYouTubeIframeAPIReady = () => {
             callbacks.forEach(cb => cb());
         };
-        window.ytAPIReadyCallbacks = callbacks;
-    }
-    
-    window.ytAPIReadyCallbacks.push(callback);
+        window.onYouTubeIframeAPIReady.callbacks = callbacks;
 
-    if (!document.getElementById('yt-iframe-api-script')) {
         const tag = document.createElement('script');
-        tag.id = 'yt-iframe-api-script';
         tag.src = 'https://www.youtube.com/iframe_api';
         const firstScriptTag = document.getElementsByTagName('script')[0];
         firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
     }
+
+    window.onYouTubeIframeAPIReady.callbacks.push(callback);
 };
 
 const formatTime = (timeInSeconds) => {
@@ -704,78 +702,113 @@ const ProgramDetailModal = ({ program, onClose, isDashboard = false }) => {
     );
 };
 
-const ProgramCard = ({ program, index, onSelect }) => (
-    <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: index * 0.1 }}
-        viewport={{ once: true }}
-        className="group relative cursor-pointer"
-        onClick={() => onSelect(program)}
-    >
-        {/* Card Content */}
-        <div className="bg-[#0A0A0A] rounded-3xl overflow-hidden h-full flex flex-col border border-white/5 group-hover:border-[#70E000]/50 group-hover:shadow-[0_0_30px_rgba(112,224,0,0.1)] transition-all duration-500 relative z-10">
+const ProgramCard = ({ program, index, onSelect, userProfile, isAdmin }) => {
+    const isProUser = userProfile?.membership_type === 'pro' || 
+                      userProfile?.membership_type === 'admin' || 
+                      userProfile?.membership_type === 'dashboard_admin' || 
+                      isAdmin;
+    const isLocked = program.is_locked && !isProUser;
 
-            {/* Image Container */}
-            <div className="relative h-64 overflow-hidden">
-                <div className="absolute top-4 left-4 z-20 flex flex-wrap gap-2">
-                    <span className="bg-black/60 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border border-white/10">
-                        {program.level}
-                    </span>
-                    {program.status && (
-                        <span className="bg-[#70E000] text-black px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-[0_0_10px_#70E000]">
-                            {program.status}
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: index * 0.1 }}
+            viewport={{ once: true }}
+            className="group relative cursor-pointer"
+            onClick={() => onSelect(program, isLocked)}
+        >
+            {/* Card Content */}
+            <div className="bg-[#0A0A0A] rounded-3xl overflow-hidden h-full flex flex-col border border-white/5 group-hover:border-[#70E000]/50 group-hover:shadow-[0_0_30px_rgba(112,224,0,0.1)] transition-all duration-500 relative z-10">
+
+                {/* Image Container */}
+                <div className="relative h-64 overflow-hidden">
+                    <div className="absolute top-4 left-4 z-20 flex flex-wrap gap-2">
+                        <span className="bg-black/60 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border border-white/10">
+                            {program.level}
                         </span>
-                    )}
+                        {program.is_locked ? (
+                            <span className={`px-3 py-1 backdrop-blur-md rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 border ${
+                                isProUser 
+                                    ? 'bg-green-500/20 text-green-400 border-green-500/30' 
+                                    : 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.4)]'
+                            }`}>
+                                <Lock size={13} /> {isProUser ? 'PRO UNLOCKED' : 'PRO ONLY'}
+                            </span>
+                        ) : program.status && (
+                            <span className="bg-[#70E000] text-black px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-[0_0_10px_#70E000]">
+                                {program.status}
+                            </span>
+                        )}
+                    </div>
+                    <img
+                        src={program.image}
+                        alt={program.title}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-transparent to-transparent opacity-90" />
                 </div>
-                <img
-                    src={program.image}
-                    alt={program.title}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-transparent to-transparent opacity-90" />
+
+                {/* Info */}
+                <div className="p-8 flex flex-col flex-grow -mt-20 relative z-20">
+                    <h3 className="text-2xl font-bold text-white mb-4 group-hover:text-[#70E000] transition-colors leading-tight">
+                        {program.title}
+                    </h3>
+
+                    <div className="space-y-3 mb-8 flex-grow">
+                        <div className="flex items-center gap-3 text-gray-400">
+                            <Clock size={16} className="text-[#70E000]" />
+                            <span className="text-sm">{program.duration}</span>
+                        </div>
+                        <div className="flex items-center gap-3 text-gray-400">
+                            <User size={16} className="text-[#70E000]" />
+                            <span className="text-sm">Instructor: <span className="text-white font-medium">{program.instructor}</span></span>
+                        </div>
+                    </div>
+
+                    <div className="block w-full">
+                        <Button
+                            variant={isLocked ? "secondary" : "accent"}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onSelect(program, isLocked);
+                            }}
+                            className={`w-full justify-between rounded-xl py-4 hover:shadow-lg hover:-translate-y-1 transition-all ${
+                                isLocked ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-bold' : ''
+                            }`}
+                        >
+                            {isLocked ? (
+                                <>
+                                    <span className="flex items-center gap-2"><Lock size={16} /> Request Pro Access</span> <ArrowRight size={18} />
+                                </>
+                            ) : (
+                                <>
+                                    View Program <ArrowRight size={18} />
+                                </>
+                            )}
+                        </Button>
+                    </div>
+                </div>
             </div>
 
-            {/* Info */}
-            <div className="p-8 flex flex-col flex-grow -mt-20 relative z-20">
-                <h3 className="text-2xl font-bold text-white mb-4 group-hover:text-[#70E000] transition-colors leading-tight">
-                    {program.title}
-                </h3>
-
-                <div className="space-y-3 mb-8 flex-grow">
-                    <div className="flex items-center gap-3 text-gray-400">
-                        <Clock size={16} className="text-[#70E000]" />
-                        <span className="text-sm">{program.duration}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-gray-400">
-                        <User size={16} className="text-[#70E000]" />
-                        <span className="text-sm">Instructor: <span className="text-white font-medium">{program.instructor}</span></span>
-                    </div>
-                </div>
-
-                <div className="block w-full">
-                    <Button
-                        variant="accent"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onSelect(program);
-                        }}
-                        className="w-full justify-between rounded-xl py-4 hover:shadow-lg hover:-translate-y-1 transition-all"
-                    >
-                        View Program <ArrowRight size={18} />
-                    </Button>
-                </div>
-            </div>
-        </div>
-
-        {/* Glow Effect behind card */}
-        <div className="absolute inset-0 bg-deedox-accent-primary/20 blur-[50px] opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-3xl -z-10" />
-    </motion.div>
-);
+            {/* Glow Effect behind card */}
+            <div className="absolute inset-0 bg-deedox-accent-primary/20 blur-[50px] opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-3xl -z-10" />
+        </motion.div>
+    );
+};
 
 const OurPrograms = () => {
-    const { programs } = useData();
+    const { programs, currentUser, userProfile, isAdmin } = useData();
     const [selectedProgram, setSelectedProgram] = useState(null);
+    const [proModalProgram, setProModalProgram] = useState(null);
+
+    const handleSelectProgram = (program, isLocked) => {
+        if (isLocked) {
+            setProModalProgram(program);
+        } else {
+            setSelectedProgram(program);
+        }
+    };
 
     return (
         <section id="programs" className="py-24 relative premium-glass-green-bg">
@@ -783,7 +816,7 @@ const OurPrograms = () => {
                 {/* Section Header */}
                 <div className="text-center mb-16 space-y-4">
                     <h2 className="text-4xl md:text-5xl font-bold uppercase tracking-tight">
-                        <span className="text-[#70E000]">Our</span>{' '}
+                        <span className="text-[#70E000]">DEEDOX</span>{' '}
                         <span className="bg-gradient-to-r from-white via-white via-70% to-gray-500 text-transparent bg-clip-text">Programs</span>
                     </h2>
                     <p className="text-deedox-text-secondary max-w-2xl mx-auto text-lg font-light">
@@ -798,7 +831,9 @@ const OurPrograms = () => {
                             key={program.id} 
                             program={program} 
                             index={index} 
-                            onSelect={setSelectedProgram}
+                            onSelect={handleSelectProgram}
+                            userProfile={userProfile}
+                            isAdmin={isAdmin}
                         />
                     ))}
                 </div>
@@ -810,6 +845,14 @@ const OurPrograms = () => {
                     <ProgramDetailModal
                         program={selectedProgram}
                         onClose={() => setSelectedProgram(null)}
+                    />
+                )}
+                {proModalProgram && (
+                    <ProAccessModal
+                        program={proModalProgram}
+                        currentUser={currentUser}
+                        userProfile={userProfile}
+                        onClose={() => setProModalProgram(null)}
                     />
                 )}
             </AnimatePresence>

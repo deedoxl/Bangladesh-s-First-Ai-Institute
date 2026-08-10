@@ -39,27 +39,27 @@ INSERT INTO public.dashboard_hero_slides (
         display_order
     )
 VALUES (
-        'FREE AI CHAT',
-        'Get answers to all your questions with our advanced AI.',
+        'DEEDOX AI Assistant',
+        'Get instant solutions and guidance from our intelligent AI tool.',
         'https://images.unsplash.com/photo-1677442136019-21780ecad995?q=80&w=1632&auto=format&fit=crop',
-        'Start Chatting',
+        'Chat Now',
         '/student/dashboard?tab=ai_suite',
         1
     ),
     (
-        'Build Your Startup',
-        'Join the Aaghaz program and launch your dream.',
-        'https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=1470&auto=format&fit=crop',
-        'View Programs',
-        '/student/dashboard?tab=programs',
+        'DEEDOX Community',
+        'Engage with like-minded founders and creators in our interactive sessions.',
+        'https://images.unsplash.com/photo-1523580494863-6f3031224c94?q=80&w=1470&auto=format&fit=crop',
+        'Explore Events',
+        '/student/dashboard?tab=community',
         2
     ),
     (
-        'Community Events',
-        'Connect with fellow founders in our weekly workshops.',
-        'https://images.unsplash.com/photo-1523580494863-6f3031224c94?q=80&w=1470&auto=format&fit=crop',
-        'Join Event',
-        '/student/dashboard?tab=events',
+        'Kickstart Your Startup',
+        'Enroll in our exclusive startup program and turn your AI dreams into reality.',
+        'https://images.unsplash.com/photo-1519389950473-47ba0277781c?q=80&w=1470&auto=format&fit=crop',
+        'Discover Programs',
+        '/student/dashboard?tab=programs',
         3
     );
 -- Grant permissions explicitly (Fix for 403 errors)
